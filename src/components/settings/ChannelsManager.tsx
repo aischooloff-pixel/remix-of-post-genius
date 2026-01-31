@@ -7,32 +7,26 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MessageSquare, Plus, Trash2, CheckCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-
-interface Channel {
-  id: string;
-  channelId: string;
-  channelTitle: string;
-  channelUsername: string;
-  botName: string;
-  isActive: boolean;
-  createdAt: Date;
-}
+import { useSettings } from "@/contexts/SettingsContext";
 
 export function ChannelsManager() {
-  const [channels, setChannels] = useState<Channel[]>([]);
+  const { bots, channels, addChannel, removeChannel } = useSettings();
   const [isAddingChannel, setIsAddingChannel] = useState(false);
   const [channelUsername, setChannelUsername] = useState("");
-  const [selectedBot, setSelectedBot] = useState("");
+  const [selectedBotId, setSelectedBotId] = useState("");
   const [isValidating, setIsValidating] = useState(false);
 
-  const mockBots = [
-    { id: "1", name: "My Channel Bot" },
-    { id: "2", name: "Another Bot" },
-  ];
+  const activeBots = bots.filter((b) => b.isActive);
 
   const handleAddChannel = async () => {
-    if (!channelUsername.trim() || !selectedBot) {
+    if (!channelUsername.trim() || !selectedBotId) {
       toast.error("Заполните все поля");
+      return;
+    }
+
+    const selectedBot = bots.find((b) => b.id === selectedBotId);
+    if (!selectedBot) {
+      toast.error("Бот не найден");
       return;
     }
 
@@ -41,26 +35,30 @@ export function ChannelsManager() {
     // Simulate channel validation
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    const newChannel: Channel = {
+    const formattedUsername = channelUsername.startsWith("@") 
+      ? channelUsername 
+      : `@${channelUsername}`;
+
+    addChannel({
       id: Date.now().toString(),
       channelId: "-100" + Date.now(),
       channelTitle: channelUsername.replace("@", ""),
-      channelUsername: channelUsername.startsWith("@") ? channelUsername : `@${channelUsername}`,
-      botName: mockBots.find((b) => b.id === selectedBot)?.name || "",
+      channelUsername: formattedUsername,
+      botId: selectedBotId,
+      botName: selectedBot.botName,
       isActive: true,
       createdAt: new Date(),
-    };
+    });
 
-    setChannels([...channels, newChannel]);
     setChannelUsername("");
-    setSelectedBot("");
+    setSelectedBotId("");
     setIsAddingChannel(false);
     setIsValidating(false);
     toast.success("Канал успешно добавлен!");
   };
 
   const handleDeleteChannel = (id: string) => {
-    setChannels(channels.filter((c) => c.id !== id));
+    removeChannel(id);
     toast.success("Канал удалён");
   };
 
@@ -75,7 +73,7 @@ export function ChannelsManager() {
         </div>
         <Dialog open={isAddingChannel} onOpenChange={setIsAddingChannel}>
           <DialogTrigger asChild>
-            <Button>
+            <Button disabled={activeBots.length === 0}>
               <Plus className="w-4 h-4 mr-2" />
               Добавить канал
             </Button>
@@ -99,25 +97,30 @@ export function ChannelsManager() {
               </div>
               <div className="space-y-2">
                 <Label>Бот для публикации</Label>
-                <Select value={selectedBot} onValueChange={setSelectedBot}>
+                <Select value={selectedBotId} onValueChange={setSelectedBotId}>
                   <SelectTrigger>
                     <SelectValue placeholder="Выберите бота" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockBots.map((bot) => (
+                    {activeBots.map((bot) => (
                       <SelectItem key={bot.id} value={bot.id}>
-                        {bot.name}
+                        {bot.botName} ({bot.botUsername})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {activeBots.length === 0 && (
+                  <p className="text-xs text-destructive">
+                    Сначала добавьте бота во вкладке "Боты"
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground">
                   Бот должен быть администратором канала
                 </p>
               </div>
               <Button
                 onClick={handleAddChannel}
-                disabled={isValidating}
+                disabled={isValidating || activeBots.length === 0}
                 className="w-full"
               >
                 {isValidating ? "Проверка прав..." : "Добавить канал"}
@@ -127,6 +130,16 @@ export function ChannelsManager() {
         </Dialog>
       </div>
 
+      {activeBots.length === 0 && (
+        <Card className="glass-card border-yellow-500/50 bg-yellow-500/10">
+          <CardContent className="py-4">
+            <p className="text-sm text-yellow-400">
+              ⚠️ Для добавления каналов сначала добавьте бота во вкладке "Боты"
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-4">
         {channels.length === 0 ? (
           <Card className="glass-card border-dashed">
@@ -135,14 +148,16 @@ export function ChannelsManager() {
               <p className="text-muted-foreground text-center">
                 Нет добавленных каналов
               </p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => setIsAddingChannel(true)}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Добавить первый канал
-              </Button>
+              {activeBots.length > 0 && (
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => setIsAddingChannel(true)}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Добавить первый канал
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (

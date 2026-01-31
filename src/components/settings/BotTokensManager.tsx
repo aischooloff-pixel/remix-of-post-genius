@@ -6,17 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Bot, Plus, Trash2, CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
-
-interface BotToken {
-  id: string;
-  botUsername: string;
-  botName: string;
-  isActive: boolean;
-  createdAt: Date;
-}
+import { useSettings } from "@/contexts/SettingsContext";
 
 export function BotTokensManager() {
-  const [bots, setBots] = useState<BotToken[]>([]);
+  const { bots, addBot, removeBot, toggleBot } = useSettings();
   const [isAddingBot, setIsAddingBot] = useState(false);
   const [newToken, setNewToken] = useState("");
   const [showToken, setShowToken] = useState(false);
@@ -33,15 +26,18 @@ export function BotTokensManager() {
     // Simulate token validation (in real app, would call Telegram API)
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    const newBot: BotToken = {
-      id: Date.now().toString(),
-      botUsername: "@new_bot",
-      botName: "New Bot",
+    // Extract bot name from token (simplified - in reality would call getMe API)
+    const botId = Date.now().toString();
+    const botUsername = `@bot_${botId.slice(-6)}`;
+    
+    addBot({
+      id: botId,
+      botUsername,
+      botName: `Bot ${botId.slice(-4)}`,
       isActive: true,
       createdAt: new Date(),
-    };
+    });
 
-    setBots([...bots, newBot]);
     setNewToken("");
     setIsAddingBot(false);
     setIsValidating(false);
@@ -49,16 +45,12 @@ export function BotTokensManager() {
   };
 
   const handleDeleteBot = (id: string) => {
-    setBots(bots.filter((b) => b.id !== id));
+    removeBot(id);
     toast.success("Бот удалён");
   };
 
   const handleToggleBot = (id: string) => {
-    setBots(
-      bots.map((b) =>
-        b.id === id ? { ...b, isActive: !b.isActive } : b
-      )
-    );
+    toggleBot(id);
   };
 
   return (
