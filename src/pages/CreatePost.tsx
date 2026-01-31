@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { IdeaForm } from "@/components/post/IdeaForm";
 import { VariantsList } from "@/components/post/VariantsList";
@@ -7,6 +8,7 @@ import { TelegramPreview } from "@/components/post/TelegramPreview";
 import { MediaManager } from "@/components/post/MediaManager";
 import { ButtonsBuilder } from "@/components/post/ButtonsBuilder";
 import { ScheduleWidget } from "@/components/post/ScheduleWidget";
+import { ChannelSelector } from "@/components/post/ChannelSelector";
 import { Button } from "@/components/ui/button";
 import { 
   IdeaFormData, 
@@ -15,10 +17,18 @@ import {
   InlineButton,
 } from "@/types/post";
 import { toast } from "sonner";
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ChevronRight, Settings } from "lucide-react";
 import { useAI } from "@/hooks/useAI";
+import { supabase } from "@/integrations/supabase/client";
 
 type Step = "idea" | "variants" | "edit";
+
+interface SelectedChannel {
+  id: string;
+  channelId: string;
+  channelTitle: string;
+  botToken: string;
+}
 
 export default function CreatePost() {
   const [step, setStep] = useState<Step>("idea");
@@ -28,8 +38,10 @@ export default function CreatePost() {
   const [editedMarkdown, setEditedMarkdown] = useState("");
   const [media, setMedia] = useState<PostMedia[]>([]);
   const [buttons, setButtons] = useState<InlineButton[]>([]);
+  const [selectedChannel, setSelectedChannel] = useState<SelectedChannel | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
   
-  const { generateVariants, editByAI, isGeneratingVariants, isEditing } = useAI();
+  const { generateVariants, editByAI, isGeneratingVariants } = useAI();
 
   const handleGenerateVariants = useCallback(async (data: IdeaFormData) => {
     try {
@@ -59,12 +71,103 @@ export default function CreatePost() {
     setStep("edit");
   };
 
-  const handlePublishNow = () => {
-    toast.success("Пост отправлен в канал!");
+  const handlePublishNow = async () => {
+    if (!selectedChannel) {
+      toast.error("Выберите канал для публикации");
+      return;
+    }
+
+    if (!editedText.trim()) {
+      toast.error("Текст поста не может быть пустым");
+      return;
+    }
+
+    setIsPublishing(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('publish-post', {
+        body: {
+          botToken: selectedChannel.botToken,
+          chatId: selectedChannel.channelId,
+          text: editedText,
+          parseMode: 'HTML',
+          media: media.length > 0 ? media.map(m => ({
+            type: m.type,
+            url: m.url,
+          })) : undefined,
+          buttons: buttons.length > 0 ? buttons.map(b => ({
+            text: b.text,
+            url: b.type === 'url' ? b.payload : undefined,
+            callback_data: b.type === 'callback' ? b.payload : undefined,
+            row: b.row,
+          })) : undefined,
+        },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      toast.success("Пост успешно опубликован в канал!");
+      
+      // Reset form
+      setStep("idea");
+      setVariants([]);
+      setSelectedVariantId(undefined);
+      setEditedText("");
+      setEditedMarkdown("");
+      setMedia([]);
+      setButtons([]);
+    } catch (error: any) {
+      console.error("Publish error:", error);
+      toast.error(`Ошибка публикации: ${error.message}`);
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
-  const handleSchedule = (datetime: Date, timezone: string) => {
-    toast.success(`Пост запланирован на ${datetime.toLocaleString("ru-RU")}`);
+  const handleSchedule = async (datetime: Date, timezone: string) => {
+    if (!selectedChannel) {
+      toast.error("Выберите канал для публикации");
+      return;
+    }
+
+    setIsPublishing(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('publish-post', {
+        body: {
+          botToken: selectedChannel.botToken,
+          chatId: selectedChannel.channelId,
+          text: editedText,
+          parseMode: 'HTML',
+          media: media.length > 0 ? media.map(m => ({
+            type: m.type,
+            url: m.url,
+          })) : undefined,
+          buttons: buttons.length > 0 ? buttons.map(b => ({
+            text: b.text,
+            url: b.type === 'url' ? b.payload : undefined,
+            callback_data: b.type === 'callback' ? b.payload : undefined,
+            row: b.row,
+          })) : undefined,
+          scheduleDatetime: datetime.toISOString(),
+        },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      if (data.scheduled) {
+        toast.success(`Пост запланирован на ${datetime.toLocaleString("ru-RU")}`);
+      } else {
+        toast.info("Telegram не поддерживает планирование менее 5 минут. Пост опубликован сейчас.");
+      }
+    } catch (error: any) {
+      console.error("Schedule error:", error);
+      toast.error(`Ошибка планирования: ${error.message}`);
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   const handleAIEdit = async (instruction: string) => {
@@ -186,10 +289,29 @@ export default function CreatePost() {
                 </div>
 
                 <div className="glass-card rounded-2xl p-6">
+                  <ChannelSelector
+                    selectedChannel={selectedChannel}
+                    onSelect={setSelectedChannel}
+                  />
+                </div>
+
+                <div className="glass-card rounded-2xl p-6">
                   <ScheduleWidget
                     onPublishNow={handlePublishNow}
                     onSchedule={handleSchedule}
+                    isPublishing={isPublishing}
                   />
+                  
+                  {!selectedChannel && (
+                    <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                      <p className="text-sm text-yellow-400">
+                        ⚠️ Для публикации добавьте бота и канал в{" "}
+                        <Link to="/settings" className="underline hover:text-yellow-300">
+                          настройках
+                        </Link>
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
