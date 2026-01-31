@@ -23,6 +23,7 @@ import { usePosts } from "@/hooks/usePosts";
 import { useBots } from "@/hooks/useBots";
 import { useChannels } from "@/hooks/useChannels";
 import { supabase } from "@/integrations/supabase/client";
+import { markdownToTelegramHtml } from "@/lib/telegram-formatter";
 
 type Step = "idea" | "variants" | "edit";
 
@@ -136,11 +137,14 @@ export default function CreatePost() {
         });
       }
 
+      // Convert markdown to HTML for Telegram
+      const htmlText = markdownToTelegramHtml(editedText);
+
       const { data, error } = await supabase.functions.invoke('publish-post', {
         body: {
           botToken: selectedChannel.botToken,
           chatId: selectedChannel.channelId,
-          text: editedText,
+          text: htmlText,
           parseMode: 'HTML',
           media: media.length > 0 ? media.map(m => ({
             type: m.type,
@@ -209,11 +213,14 @@ export default function CreatePost() {
         });
       }
 
+      // Convert markdown to HTML for Telegram
+      const htmlText = markdownToTelegramHtml(editedText);
+
       const { data, error } = await supabase.functions.invoke('publish-post', {
         body: {
           botToken: selectedChannel.botToken,
           chatId: selectedChannel.channelId,
-          text: editedText,
+          text: htmlText,
           parseMode: 'HTML',
           media: media.length > 0 ? media.map(m => ({
             type: m.type,
