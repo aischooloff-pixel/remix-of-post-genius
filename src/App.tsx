@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { PostsProvider } from "@/contexts/PostsContext";
 import CreatePost from "./pages/CreatePost";
-import History from "./pages/History";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -20,7 +19,6 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<CreatePost />} />
-            <Route path="/history" element={<History />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
