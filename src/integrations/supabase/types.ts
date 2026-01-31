@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_providers: {
+        Row: {
+          api_key: string
+          created_at: string
+          endpoint_url: string
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          model_id: string
+          name: string
+          provider_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          endpoint_url?: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          model_id: string
+          name: string
+          provider_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          endpoint_url?: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          model_id?: string
+          name?: string
+          provider_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bot_tokens: {
         Row: {
           bot_name: string | null
