@@ -18,6 +18,7 @@ interface SelectedChannel {
   channelId: string;
   channelTitle: string;
   botToken: string;
+  botTokenId: string;
 }
 
 interface ChannelSelectorProps {
@@ -46,6 +47,7 @@ export function ChannelSelector({ selectedChannel, onSelect }: ChannelSelectorPr
           channelId: channel.channelId,
           channelTitle: channel.channelTitle || channel.channelUsername || channel.channelId,
           botToken: bot.token,
+          botTokenId: bot.id,
         });
       }
     }
