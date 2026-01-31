@@ -232,7 +232,7 @@ export function MediaManager({ media, onChange }: MediaManagerProps) {
               className="min-h-[80px]"
             />
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="text-xs">Стиль</Label>
                 <Select value={style} onValueChange={setStyle}>
@@ -259,22 +259,6 @@ export function MediaManager({ media, onChange }: MediaManagerProps) {
                     {ASPECT_RATIOS.map((r) => (
                       <SelectItem key={r.value} value={r.value}>
                         {r.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs">Количество</Label>
-                <Select value={String(count)} onValueChange={(v) => setCount(Number(v))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4].map((n) => (
-                      <SelectItem key={n} value={String(n)}>
-                        {n} {n === 1 ? "изображение" : "изображения"}
                       </SelectItem>
                     ))}
                   </SelectContent>
