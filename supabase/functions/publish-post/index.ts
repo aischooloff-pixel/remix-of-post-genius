@@ -77,21 +77,39 @@ serve(async (req) => {
       );
     }
 
+    // Check if this is a scheduled post (more than 1 minute in future)
+    if (scheduleDatetime) {
+      const scheduleTime = new Date(scheduleDatetime).getTime();
+      const now = Date.now();
+      const oneMinute = 60 * 1000;
+
+      if (scheduleTime > now + oneMinute) {
+        // This is a scheduled post - don't send to Telegram now
+        // The post should already be saved with status "scheduled" in the database
+        // The cron function will pick it up and send it at the right time
+        console.log('Scheduled post detected:', { 
+          scheduleDatetime, 
+          scheduledFor: new Date(scheduleDatetime).toISOString(),
+          currentTime: new Date().toISOString()
+        });
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            scheduled: true,
+            scheduledFor: scheduleDatetime,
+            message: 'Post scheduled. It will be sent automatically at the scheduled time.'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     console.log('Publishing to Telegram:', { chatId, textLength: text.length, hasMedia: !!media?.length, hasButtons: !!buttons?.length, parseMode });
     console.log('Text being sent:', text.substring(0, 200));
 
     const replyMarkup = buildInlineKeyboard(buttons);
     
-    // Calculate schedule_date if provided (must be 5+ minutes in future)
-    let scheduleDate: number | undefined;
-    if (scheduleDatetime) {
-      const scheduleTime = new Date(scheduleDatetime).getTime() / 1000;
-      const now = Date.now() / 1000;
-      if (scheduleTime > now + 300) { // 5 minutes minimum
-        scheduleDate = Math.floor(scheduleTime);
-      }
-    }
-
     let result;
 
     if (media && media.length > 0) {
@@ -107,7 +125,6 @@ serve(async (req) => {
           caption: text,
           parse_mode: parseMode,
           reply_markup: replyMarkup,
-          ...(scheduleDate && { message_thread_id: undefined }), // schedule_date not available for media
         });
       } else {
         // Media group (album)
@@ -138,7 +155,6 @@ serve(async (req) => {
         text,
         parse_mode: parseMode,
         reply_markup: replyMarkup,
-        ...(scheduleDate && { schedule_date: scheduleDate }),
       });
     }
 
@@ -148,7 +164,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         messageId: result.result?.message_id,
-        scheduled: !!scheduleDate,
+        scheduled: false,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

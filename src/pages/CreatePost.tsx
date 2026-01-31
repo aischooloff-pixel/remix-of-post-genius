@@ -32,6 +32,7 @@ interface SelectedChannel {
   channelId: string;
   channelTitle: string;
   botToken: string;
+  botTokenId: string;
 }
 
 export default function CreatePost() {
@@ -198,61 +199,40 @@ export default function CreatePost() {
       return;
     }
 
+    if (!editedText.trim()) {
+      toast.error("Текст поста не может быть пустым");
+      return;
+    }
+
+    // Check if schedule time is at least 1 minute in the future
+    const now = Date.now();
+    const scheduleTime = datetime.getTime();
+    if (scheduleTime <= now + 60000) {
+      toast.error("Время публикации должно быть минимум через 1 минуту");
+      return;
+    }
+
     setIsPublishing(true);
 
     try {
-      // Update post with schedule
+      // Convert markdown to HTML for Telegram
+      const htmlText = markdownToTelegramHtml(editedText);
+
+      // Save post with scheduled status - the cron function will send it
       if (currentPostId) {
         await updatePost(currentPostId, { 
           status: "scheduled",
           channelId: selectedChannel.id,
+          botTokenId: selectedChannel.botTokenId, // Need to save bot token reference
           scheduleDatetime: datetime,
           media,
           buttons,
           editedTextMarkdown: editedMarkdown,
+          editedTextHtml: htmlText,
         });
       }
 
-      // Convert markdown to HTML for Telegram
-      const htmlText = markdownToTelegramHtml(editedText);
-
-      const { data, error } = await supabase.functions.invoke('publish-post', {
-        body: {
-          botToken: selectedChannel.botToken,
-          chatId: selectedChannel.channelId,
-          text: htmlText,
-          parseMode: 'HTML',
-          media: media.length > 0 ? media.map(m => ({
-            type: m.type,
-            url: m.url,
-          })) : undefined,
-          buttons: buttons.length > 0 ? buttons.map(b => ({
-            text: b.text,
-            url: b.type === 'url' ? b.payload : undefined,
-            callback_data: b.type === 'callback' ? b.payload : undefined,
-            row: b.row,
-          })) : undefined,
-          scheduleDatetime: datetime.toISOString(),
-        },
-      });
-
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
-
-      if (data.scheduled) {
-        toast.success(`Пост запланирован на ${datetime.toLocaleString("ru-RU")}`);
-      } else {
-        // Update post status to sent if it was published immediately
-        if (currentPostId) {
-          await updatePost(currentPostId, { 
-            status: "sent",
-            telegramMessageId: data.messageId,
-            sentAt: new Date(),
-          });
-        }
-        toast.info("Telegram не поддерживает планирование менее 5 минут. Пост опубликован сейчас.");
-      }
-      
+      toast.success(`Пост запланирован на ${datetime.toLocaleString("ru-RU")}. Он будет отправлен автоматически.`);
       resetForm();
     } catch (error: any) {
       console.error("Schedule error:", error);
