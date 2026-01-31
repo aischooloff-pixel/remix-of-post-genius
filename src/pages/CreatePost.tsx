@@ -188,7 +188,7 @@ export default function CreatePost() {
     }
   };
 
-  const handleSchedule = async (datetime: Date, timezone: string) => {
+  const handleSchedule = async (datetime: Date) => {
     if (!selectedChannel) {
       toast.error("Выберите канал для публикации");
       return;
