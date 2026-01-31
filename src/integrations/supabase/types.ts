@@ -26,7 +26,7 @@ export type Database = {
           name: string
           provider_type: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           api_key: string
@@ -39,7 +39,7 @@ export type Database = {
           name: string
           provider_type?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           api_key?: string
@@ -52,7 +52,7 @@ export type Database = {
           name?: string
           provider_type?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }

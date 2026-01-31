@@ -60,16 +60,9 @@ export function useAIProviders() {
     modelId: string
   ): Promise<AIProvider | null> => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error("Необходимо войти в систему");
-        return null;
-      }
-
       const { data, error } = await supabase
         .from("ai_providers")
         .insert({
-          user_id: user.id,
           name,
           provider_type: providerType,
           api_key: apiKey,
@@ -164,14 +157,11 @@ export function useAIProviders() {
 
   const setDefaultProvider = async (id: string): Promise<boolean> => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return false;
-
-      // Remove default from all
+      // Remove default from all providers
       await supabase
         .from("ai_providers")
         .update({ is_default: false })
-        .eq("user_id", user.id);
+        .neq("id", id);
 
       // Set new default
       const { error } = await supabase
