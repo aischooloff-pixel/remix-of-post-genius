@@ -19,17 +19,7 @@ interface Channel {
 }
 
 export function ChannelsManager() {
-  const [channels, setChannels] = useState<Channel[]>([
-    {
-      id: "1",
-      channelId: "-1001234567890",
-      channelTitle: "Мой канал",
-      channelUsername: "@my_channel",
-      botName: "My Channel Bot",
-      isActive: true,
-      createdAt: new Date(),
-    },
-  ]);
+  const [channels, setChannels] = useState<Channel[]>([]);
   const [isAddingChannel, setIsAddingChannel] = useState(false);
   const [channelUsername, setChannelUsername] = useState("");
   const [selectedBot, setSelectedBot] = useState("");

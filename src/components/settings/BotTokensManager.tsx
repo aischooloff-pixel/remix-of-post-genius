@@ -16,15 +16,7 @@ interface BotToken {
 }
 
 export function BotTokensManager() {
-  const [bots, setBots] = useState<BotToken[]>([
-    {
-      id: "1",
-      botUsername: "@my_channel_bot",
-      botName: "My Channel Bot",
-      isActive: true,
-      createdAt: new Date(),
-    },
-  ]);
+  const [bots, setBots] = useState<BotToken[]>([]);
   const [isAddingBot, setIsAddingBot] = useState(false);
   const [newToken, setNewToken] = useState("");
   const [showToken, setShowToken] = useState(false);
