@@ -1,9 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
+
+// Convert base64 to Uint8Array for upload
+function base64ToUint8Array(base64: string): Uint8Array {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -14,9 +25,18 @@ serve(async (req) => {
     const { prompt, style, count = 1 } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
+    
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error("Supabase configuration is missing");
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     console.log("Generating image with prompt:", prompt.substring(0, 50) + "...");
 
@@ -61,15 +81,56 @@ serve(async (req) => {
       }
 
       const data = await response.json();
-      const imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      const imageDataUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
       
-      if (imageData) {
-        images.push({
-          id: crypto.randomUUID(),
-          url: imageData,
-          type: 'photo',
-          generatedBy: 'lovable-ai',
-        });
+      if (imageDataUrl) {
+        // Extract base64 data from data URL
+        const matches = imageDataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+        
+        if (matches) {
+          const imageFormat = matches[1];
+          const base64Data = matches[2];
+          const imageBytes = base64ToUint8Array(base64Data);
+          
+          const imageId = crypto.randomUUID();
+          const fileName = `${imageId}.${imageFormat}`;
+          const filePath = `generated/${fileName}`;
+          
+          // Upload to Supabase Storage
+          const { error: uploadError } = await supabase.storage
+            .from('post-media')
+            .upload(filePath, imageBytes, {
+              contentType: `image/${imageFormat}`,
+              upsert: false,
+            });
+          
+          if (uploadError) {
+            console.error("Storage upload error:", uploadError);
+            throw new Error(`Failed to upload image: ${uploadError.message}`);
+          }
+          
+          // Get public URL
+          const { data: urlData } = supabase.storage
+            .from('post-media')
+            .getPublicUrl(filePath);
+          
+          console.log("Uploaded image to storage:", urlData.publicUrl);
+          
+          images.push({
+            id: imageId,
+            url: urlData.publicUrl,
+            type: 'photo',
+            generatedBy: 'lovable-ai',
+          });
+        } else {
+          // If not a data URL, use as-is (might be an external URL)
+          images.push({
+            id: crypto.randomUUID(),
+            url: imageDataUrl,
+            type: 'photo',
+            generatedBy: 'lovable-ai',
+          });
+        }
       }
     }
 
