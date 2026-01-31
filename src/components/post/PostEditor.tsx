@@ -185,6 +185,10 @@ export function PostEditor({
   };
 
   const handleAISubmit = () => {
+    if (!hasPaid) {
+      toast.error("Оформите доступ для AI-редактирования");
+      return;
+    }
     if (aiInstruction.trim() && onAIEdit) {
       onAIEdit(aiInstruction);
       setAIInstruction("");
