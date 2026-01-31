@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { usePosts } from "@/contexts/PostsContext";
+import { useBots } from "@/hooks/useBots";
+import { useChannels } from "@/hooks/useChannels";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import {
@@ -43,12 +45,25 @@ const STATUS_CONFIG: Record<PostStatus, { label: string; variant: "default" | "s
 type FilterType = "all" | "draft" | "scheduled" | "sent";
 
 export default function PostHistory() {
-  const { posts, loading, deletePost, refetch } = usePosts();
+  const { posts, loading, deletePost } = usePosts();
+  const { getBotToken } = useBots();
+  const { channels } = useChannels();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<FilterType>("all");
 
-  const handleDelete = async (id: string) => {
-    await deletePost(id);
+  const handleDelete = async (postId: string) => {
+    const post = posts.find(p => p.id === postId);
+    let botToken: string | undefined;
+    
+    // If post was sent, find the bot token to delete from Telegram
+    if (post?.status === "sent" && post.channelId) {
+      const channel = channels.find(c => c.id === post.channelId);
+      if (channel?.botTokenId) {
+        botToken = getBotToken(channel.botTokenId) || undefined;
+      }
+    }
+    
+    await deletePost(postId, botToken);
   };
 
   const handleEdit = (postId: string) => {

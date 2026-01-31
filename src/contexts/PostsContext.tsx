@@ -58,7 +58,7 @@ interface PostsContextType {
       sentAt: Date;
     }>
   ) => Promise<boolean>;
-  deletePost: (id: string) => Promise<boolean>;
+  deletePost: (id: string, botToken?: string) => Promise<boolean>;
   refetch: () => void;
 }
 
@@ -250,8 +250,45 @@ export function PostsProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const deletePost = useCallback(async (id: string): Promise<boolean> => {
+  const deletePost = useCallback(async (id: string, botToken?: string): Promise<boolean> => {
     try {
+      // Find the post to check if we need to delete from Telegram
+      const post = posts.find(p => p.id === id);
+      
+      // If post was sent to Telegram, try to delete it there first
+      if (post?.status === "sent" && post.telegramMessageId && post.channelId) {
+        // Get channel info to find the chat ID
+        const { data: channel } = await supabase
+          .from("channels")
+          .select("channel_id, bot_token_id")
+          .eq("id", post.channelId)
+          .single();
+        
+        if (channel && botToken) {
+          try {
+            const { data, error } = await supabase.functions.invoke('delete-telegram-message', {
+              body: {
+                botToken,
+                chatId: channel.channel_id,
+                messageId: post.telegramMessageId,
+              },
+            });
+            
+            if (error) {
+              console.error("Error deleting from Telegram:", error);
+            } else if (data?.success) {
+              console.log("Message deleted from Telegram");
+            } else if (data?.telegramError) {
+              // Message might be already deleted or too old - continue with local deletion
+              console.warn("Telegram deletion warning:", data.error);
+            }
+          } catch (telegramError) {
+            console.error("Failed to delete from Telegram:", telegramError);
+            // Continue with local deletion even if Telegram deletion fails
+          }
+        }
+      }
+
       const { error } = await supabase
         .from("posts")
         .delete()
@@ -267,7 +304,7 @@ export function PostsProvider({ children }: { children: ReactNode }) {
       toast.error("Ошибка удаления поста");
       return false;
     }
-  }, []);
+  }, [posts]);
 
   return (
     <PostsContext.Provider value={{

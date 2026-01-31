@@ -46,3 +46,6 @@ verify_jwt = false
 [functions.send-scheduled-posts]
 verify_jwt = false
 schedule = "* * * * *"
+
+[functions.delete-telegram-message]
+verify_jwt = false
