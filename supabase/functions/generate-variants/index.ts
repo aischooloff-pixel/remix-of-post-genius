@@ -27,9 +27,9 @@ serve(async (req) => {
   try {
     const { idea, tone, length, goal, targetAudience, systemPrompt, template } = await req.json();
     
-    const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY");
-    if (!DEEPSEEK_API_KEY) {
-      throw new Error("DEEPSEEK_API_KEY is not configured");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY) {
+      throw new Error("OPENROUTER_API_KEY is not configured");
     }
 
     console.log("Generating variants for idea:", idea.substring(0, 50) + "...");
@@ -77,14 +77,16 @@ ${!template ? `Стили вариантов:
   {"id": "v3", "style": "promo", "styleName": "${template ? 'Вариант C' : 'Продающий'}", "text": "...", "textMarkdown": "...", "textHtml": "..."}
 ]`;
 
-    const response = await fetch("https://api.deepseek.com/chat/completions", {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://lovable.dev",
+        "X-Title": "Telegram Post Generator",
       },
       body: JSON.stringify({
-        model: "deepseek-chat",
+        model: "meta-llama/llama-3.3-70b-instruct:free",
         messages: [
           { role: "system", content: systemPrompt || defaultSystemPrompt },
           { role: "user", content: `Идея для поста:\n\n${idea}` }
