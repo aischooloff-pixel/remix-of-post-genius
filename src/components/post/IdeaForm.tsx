@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, Target, Users, MessageSquare, Ruler, FileText } from "lucide-react";
+import { Sparkles, Target, Users, MessageSquare, Ruler, FileText, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -36,6 +36,7 @@ export function IdeaForm({ onSubmit, isLoading }: IdeaFormProps) {
     goal: "",
     targetAudience: "",
     systemPromptId: defaultPrompt?.id,
+    variantsCount: 1,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -155,6 +156,29 @@ export function IdeaForm({ onSubmit, isLoading }: IdeaFormProps) {
           </Select>
         </div>
 
+        {/* Variants Count */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Layers className="w-4 h-4 text-muted-foreground" />
+            Вариантов
+          </Label>
+          <Select
+            value={String(formData.variantsCount)}
+            onValueChange={(value) =>
+              setFormData({ ...formData, variantsCount: Number(value) })
+            }
+          >
+            <SelectTrigger className="bg-secondary/50">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">1 вариант</SelectItem>
+              <SelectItem value="2">2 варианта</SelectItem>
+              <SelectItem value="3">3 варианта</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Goal */}
         <div className="space-y-2">
           <Label htmlFor="goal" className="flex items-center gap-2">
@@ -203,7 +227,7 @@ export function IdeaForm({ onSubmit, isLoading }: IdeaFormProps) {
         ) : (
           <>
             <Sparkles className="w-5 h-5 mr-2" />
-            Сгенерировать 3 варианта
+            Сгенерировать {formData.variantsCount === 1 ? "1 вариант" : `${formData.variantsCount} варианта`}
           </>
         )}
       </Button>
