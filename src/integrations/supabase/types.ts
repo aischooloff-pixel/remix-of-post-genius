@@ -14,7 +14,260 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bot_tokens: {
+        Row: {
+          bot_name: string | null
+          bot_username: string | null
+          created_at: string | null
+          encrypted_token: string
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bot_name?: string | null
+          bot_username?: string | null
+          created_at?: string | null
+          encrypted_token: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bot_name?: string | null
+          bot_username?: string | null
+          created_at?: string | null
+          encrypted_token?: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      channels: {
+        Row: {
+          bot_token_id: string | null
+          channel_id: string
+          channel_title: string | null
+          channel_username: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bot_token_id?: string | null
+          channel_id: string
+          channel_title?: string | null
+          channel_username?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bot_token_id?: string | null
+          channel_id?: string
+          channel_title?: string | null
+          channel_username?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channels_bot_token_id_fkey"
+            columns: ["bot_token_id"]
+            isOneToOne: false
+            referencedRelation: "bot_tokens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_versions: {
+        Row: {
+          created_at: string | null
+          id: string
+          post_id: string | null
+          text_html: string | null
+          text_markdown: string | null
+          version_number: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          post_id?: string | null
+          text_html?: string | null
+          text_markdown?: string | null
+          version_number: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          post_id?: string | null
+          text_html?: string | null
+          text_markdown?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_versions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          bot_token_id: string | null
+          buttons: Json | null
+          channel_id: string | null
+          chosen_variant_id: string | null
+          created_at: string | null
+          edited_text_html: string | null
+          edited_text_markdown: string | null
+          error_message: string | null
+          goal: string | null
+          id: string
+          idea_text: string
+          length: Database["public"]["Enums"]["length_option"] | null
+          logs: Json | null
+          media: Json | null
+          schedule_datetime: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["post_status"] | null
+          system_prompt_id: string | null
+          target_audience: string | null
+          telegram_message_id: number | null
+          timezone: string | null
+          tone: Database["public"]["Enums"]["tone_option"] | null
+          updated_at: string | null
+          user_id: string
+          variants: Json | null
+        }
+        Insert: {
+          bot_token_id?: string | null
+          buttons?: Json | null
+          channel_id?: string | null
+          chosen_variant_id?: string | null
+          created_at?: string | null
+          edited_text_html?: string | null
+          edited_text_markdown?: string | null
+          error_message?: string | null
+          goal?: string | null
+          id?: string
+          idea_text: string
+          length?: Database["public"]["Enums"]["length_option"] | null
+          logs?: Json | null
+          media?: Json | null
+          schedule_datetime?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["post_status"] | null
+          system_prompt_id?: string | null
+          target_audience?: string | null
+          telegram_message_id?: number | null
+          timezone?: string | null
+          tone?: Database["public"]["Enums"]["tone_option"] | null
+          updated_at?: string | null
+          user_id: string
+          variants?: Json | null
+        }
+        Update: {
+          bot_token_id?: string | null
+          buttons?: Json | null
+          channel_id?: string | null
+          chosen_variant_id?: string | null
+          created_at?: string | null
+          edited_text_html?: string | null
+          edited_text_markdown?: string | null
+          error_message?: string | null
+          goal?: string | null
+          id?: string
+          idea_text?: string
+          length?: Database["public"]["Enums"]["length_option"] | null
+          logs?: Json | null
+          media?: Json | null
+          schedule_datetime?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["post_status"] | null
+          system_prompt_id?: string | null
+          target_audience?: string | null
+          telegram_message_id?: number | null
+          timezone?: string | null
+          tone?: Database["public"]["Enums"]["tone_option"] | null
+          updated_at?: string | null
+          user_id?: string
+          variants?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_bot_token_id_fkey"
+            columns: ["bot_token_id"]
+            isOneToOne: false
+            referencedRelation: "bot_tokens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_system_prompt_id_fkey"
+            columns: ["system_prompt_id"]
+            isOneToOne: false
+            referencedRelation: "system_prompts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_prompts: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          is_public: boolean | null
+          name: string
+          prompt_text: string
+          updated_at: string | null
+          user_id: string
+          variables_template: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          is_public?: boolean | null
+          name: string
+          prompt_text: string
+          updated_at?: string | null
+          user_id: string
+          variables_template?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          is_public?: boolean | null
+          name?: string
+          prompt_text?: string
+          updated_at?: string | null
+          user_id?: string
+          variables_template?: Json | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +276,17 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      button_type: "url" | "callback"
+      length_option: "short" | "medium" | "long"
+      media_type: "photo" | "video" | "gif" | "document"
+      post_status:
+        | "draft"
+        | "scheduled"
+        | "sending"
+        | "sent"
+        | "failed"
+        | "cancelled"
+      tone_option: "drive" | "info" | "promo" | "friendly" | "formal"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +413,19 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      button_type: ["url", "callback"],
+      length_option: ["short", "medium", "long"],
+      media_type: ["photo", "video", "gif", "document"],
+      post_status: [
+        "draft",
+        "scheduled",
+        "sending",
+        "sent",
+        "failed",
+        "cancelled",
+      ],
+      tone_option: ["drive", "info", "promo", "friendly", "formal"],
+    },
   },
 } as const

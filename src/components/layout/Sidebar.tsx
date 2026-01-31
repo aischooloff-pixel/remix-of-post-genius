@@ -25,15 +25,11 @@ interface NavItem {
 
 const mainNav: NavItem[] = [
   { icon: PenSquare, label: "Создать пост", href: "/" },
-  { icon: Clock, label: "Запланировано", href: "/scheduled", badge: 3 },
-  { icon: Send, label: "Отправлено", href: "/sent" },
-  { icon: FileText, label: "Черновики", href: "/drafts", badge: 2 },
+  { icon: Clock, label: "История", href: "/history" },
 ];
 
 const toolsNav: NavItem[] = [
-  { icon: Image, label: "Медиа", href: "/media" },
-  { icon: FileText, label: "Шаблоны", href: "/templates" },
-  { icon: Bot, label: "Боты", href: "/bots" },
+  { icon: Bot, label: "Настройки", href: "/settings" },
 ];
 
 export function Sidebar() {
@@ -148,9 +144,8 @@ export function Sidebar() {
         </div>
       </nav>
 
-      {/* Settings & Collapse */}
+      {/* Collapse */}
       <div className="p-3 border-t border-border space-y-2">
-        <NavLink item={{ icon: Settings, label: "Настройки", href: "/settings" }} />
         
         <Button
           variant="ghost"
