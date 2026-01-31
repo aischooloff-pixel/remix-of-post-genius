@@ -1,9 +1,39 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
+
+interface AIProvider {
+  api_key: string;
+  endpoint_url: string;
+  model_id: string;
+  provider_type: string;
+}
+
+async function getDefaultProvider(supabase: any): Promise<AIProvider | null> {
+  const { data, error } = await supabase
+    .from("ai_providers")
+    .select("api_key, endpoint_url, model_id, provider_type")
+    .eq("is_default", true)
+    .eq("is_active", true)
+    .single();
+
+  if (error || !data) {
+    const { data: anyProvider } = await supabase
+      .from("ai_providers")
+      .select("api_key, endpoint_url, model_id, provider_type")
+      .eq("is_active", true)
+      .limit(1)
+      .single();
+    
+    return anyProvider || null;
+  }
+
+  return data;
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -13,9 +43,45 @@ serve(async (req) => {
   try {
     const { text, instruction } = await req.json();
     
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    // Get user's auth token
+    const authHeader = req.headers.get("Authorization");
+    
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader || "" } },
+    });
+
+    // Get user's AI provider
+    const provider = await getDefaultProvider(supabase);
+    
+    let apiKey: string;
+    let endpoint: string;
+    let model: string;
+    let extraHeaders: Record<string, string> = {};
+
+    if (provider) {
+      apiKey = provider.api_key;
+      endpoint = provider.endpoint_url;
+      model = provider.model_id;
+      
+      if (provider.provider_type === "openrouter") {
+        extraHeaders = {
+          "HTTP-Referer": "https://lovable.dev",
+          "X-Title": "Telegram Post Editor",
+        };
+      }
+      console.log("Using user's AI provider:", provider.provider_type, model);
+    } else {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) {
+        throw new Error("Нет настроенного AI провайдера. Добавьте API ключ в настройках.");
+      }
+      apiKey = LOVABLE_API_KEY;
+      endpoint = "https://ai.gateway.lovable.dev/v1/chat/completions";
+      model = "google/gemini-3-flash-preview";
+      console.log("Using fallback Lovable AI");
     }
 
     console.log("Editing text with instruction:", instruction);
@@ -36,14 +102,15 @@ serve(async (req) => {
   "textHtml": "текст с HTML"
 }`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
+        ...extraHeaders,
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Оригинальный текст:\n${text}\n\nИнструкция для редактирования:\n${instruction}` }
@@ -61,6 +128,12 @@ serve(async (req) => {
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "Payment required. Please add credits." }), {
           status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 401) {
+        return new Response(JSON.stringify({ error: "Неверный API ключ. Проверьте настройки AI провайдера." }), {
+          status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
