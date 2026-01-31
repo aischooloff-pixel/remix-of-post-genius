@@ -79,6 +79,10 @@ export function PostEditor({
   const [linkUrl, setLinkUrl] = useState("");
   const [linkText, setLinkText] = useState("");
   const [isLinkPopoverOpen, setIsLinkPopoverOpen] = useState(false);
+  // Capture selection positions at popover open time to avoid stale values
+  const [capturedSelectionStart, setCapturedSelectionStart] = useState(0);
+  const [capturedSelectionEnd, setCapturedSelectionEnd] = useState(0);
+  const [capturedText, setCapturedText] = useState("");
 
   // Sync with external text changes (e.g., from AI editing)
   useEffect(() => {
@@ -139,6 +143,11 @@ export function PostEditor({
   };
 
   const handleOpenLinkPopover = () => {
+    // Capture current state at the moment of opening
+    setCapturedSelectionStart(selectionStart);
+    setCapturedSelectionEnd(selectionEnd);
+    setCapturedText(text);
+    
     // Get selected text as link text
     const selectedText = text.slice(selectionStart, selectionEnd);
     setLinkText(selectedText || "");
@@ -152,12 +161,20 @@ export function PostEditor({
       return;
     }
 
+    // Use captured values from when popover was opened
     const displayText = linkText.trim() || linkUrl;
-    const before = text.slice(0, selectionStart);
-    const after = text.slice(selectionEnd);
+    const before = capturedText.slice(0, capturedSelectionStart);
+    const after = capturedText.slice(capturedSelectionEnd);
     const linkMarkdown = `[${displayText}](${linkUrl})`;
     
-    handleTextChange(`${before}${linkMarkdown}${after}`);
+    const newText = `${before}${linkMarkdown}${after}`;
+    handleTextChange(newText);
+    
+    // Update selection to end of inserted link
+    const newCursorPos = capturedSelectionStart + linkMarkdown.length;
+    setSelectionStart(newCursorPos);
+    setSelectionEnd(newCursorPos);
+    
     setIsLinkPopoverOpen(false);
     setLinkUrl("");
     setLinkText("");
