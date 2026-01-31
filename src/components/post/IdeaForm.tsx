@@ -19,6 +19,8 @@ import {
   LENGTH_LABELS,
 } from "@/types/post";
 import { useSystemPrompts } from "@/hooks/useSystemPrompts";
+import { useAccessControl } from "@/hooks/useAccessControl";
+import { PaywallMessage } from "./PaywallMessage";
 
 interface IdeaFormProps {
   onSubmit: (data: IdeaFormData) => void;
@@ -26,6 +28,7 @@ interface IdeaFormProps {
 }
 
 export function IdeaForm({ onSubmit, isLoading }: IdeaFormProps) {
+  const { hasPaid, isLoading: isCheckingAccess } = useAccessControl();
   const { prompts, getDefaultPrompt } = useSystemPrompts();
   const defaultPrompt = getDefaultPrompt();
   
@@ -189,25 +192,29 @@ export function IdeaForm({ onSubmit, isLoading }: IdeaFormProps) {
         </div>
       </div>
 
-      {/* Submit Button */}
-      <Button
-        type="submit"
-        size="lg"
-        className="w-full bg-gradient-to-r from-primary to-purple-500 hover:opacity-90 transition-opacity"
-        disabled={!formData.idea.trim() || isLoading}
-      >
-        {isLoading ? (
-          <>
-            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-            Генерация...
-          </>
-        ) : (
-          <>
-            <Sparkles className="w-5 h-5 mr-2" />
-            Сгенерировать
-          </>
-        )}
-      </Button>
+      {/* Paywall or Submit Button */}
+      {!hasPaid && !isCheckingAccess ? (
+        <PaywallMessage />
+      ) : (
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full bg-gradient-to-r from-primary to-purple-500 hover:opacity-90 transition-opacity"
+          disabled={!formData.idea.trim() || isLoading || !hasPaid || isCheckingAccess}
+        >
+          {isLoading ? (
+            <>
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+              Генерация...
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-5 h-5 mr-2" />
+              Сгенерировать
+            </>
+          )}
+        </Button>
+      )}
     </form>
   );
 }
