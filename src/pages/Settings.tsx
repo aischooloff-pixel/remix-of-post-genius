@@ -12,31 +12,31 @@ export default function Settings() {
 
   return (
     <MainLayout>
-      <div className="p-6 lg:p-8 max-w-5xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Настройки</h1>
-          <p className="text-muted-foreground">
+      <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto">
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">Настройки</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             Управление ботами, каналами, AI и промптами
           </p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 mb-8">
-            <TabsTrigger value="bots" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-4 mb-6 md:mb-8">
+            <TabsTrigger value="bots" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-4">
               <Bot className="w-4 h-4" />
-              Боты
+              <span className="hidden sm:inline">Боты</span>
             </TabsTrigger>
-            <TabsTrigger value="channels" className="flex items-center gap-2">
+            <TabsTrigger value="channels" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-4">
               <MessageSquare className="w-4 h-4" />
-              Каналы
+              <span className="hidden sm:inline">Каналы</span>
             </TabsTrigger>
-            <TabsTrigger value="ai" className="flex items-center gap-2">
+            <TabsTrigger value="ai" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-4">
               <Brain className="w-4 h-4" />
-              AI
+              <span className="hidden sm:inline">AI</span>
             </TabsTrigger>
-            <TabsTrigger value="prompts" className="flex items-center gap-2">
+            <TabsTrigger value="prompts" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-4">
               <FileText className="w-4 h-4" />
-              Промпты
+              <span className="hidden sm:inline">Промпты</span>
             </TabsTrigger>
           </TabsList>
 

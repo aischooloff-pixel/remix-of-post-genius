@@ -347,9 +347,9 @@ export default function CreatePost() {
 
   return (
     <MainLayout>
-      <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+      <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 md:mb-8">
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
             <span className={step === "idea" ? "text-primary font-medium" : ""}>
               Идея
@@ -359,7 +359,7 @@ export default function CreatePost() {
               Редактирование
             </span>
           </div>
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-2xl md:text-3xl font-bold">
             {step === "idea" && "Создать пост"}
             {step === "edit" && "Редактирование поста"}
           </h1>
@@ -368,7 +368,7 @@ export default function CreatePost() {
         {/* Step: Idea */}
         {step === "idea" && (
           <div className="max-w-2xl">
-            <div className="glass-card rounded-2xl p-6">
+            <div className="glass-card rounded-2xl p-4 md:p-6">
               <IdeaForm onSubmit={handleGenerateVariants} isLoading={isGeneratingVariants} />
             </div>
           </div>
@@ -376,16 +376,16 @@ export default function CreatePost() {
 
         {/* Step: Edit */}
         {step === "edit" && (
-          <div className="space-y-6">
-            <Button variant="ghost" onClick={() => setStep("idea")}>
+          <div className="space-y-4 md:space-y-6">
+            <Button variant="ghost" size="sm" onClick={() => setStep("idea")} className="text-sm">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Назад к вариантам
+              Назад
             </Button>
 
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6">
               {/* Editor Column */}
-              <div className="xl:col-span-2 space-y-6">
-                <div className="glass-card rounded-2xl p-6">
+              <div className="xl:col-span-2 space-y-4 md:space-y-6">
+                <div className="glass-card rounded-2xl p-4 md:p-6">
                   <PostEditor
                     initialText={editedText}
                     initialMarkdown={editedMarkdown}
@@ -397,18 +397,18 @@ export default function CreatePost() {
                   />
                 </div>
 
-                <div className="glass-card rounded-2xl p-6">
+                <div className="glass-card rounded-2xl p-4 md:p-6">
                   <MediaManager media={media} onChange={setMedia} />
                 </div>
 
-                <div className="glass-card rounded-2xl p-6">
+                <div className="glass-card rounded-2xl p-4 md:p-6">
                   <ButtonsBuilder buttons={buttons} onChange={setButtons} />
                 </div>
               </div>
 
               {/* Preview & Schedule Column */}
-              <div className="space-y-6">
-                <div className="glass-card rounded-2xl p-6">
+              <div className="space-y-4 md:space-y-6">
+                <div className="glass-card rounded-2xl p-4 md:p-6">
                   <h3 className="text-lg font-semibold mb-4">Предпросмотр</h3>
                   <TelegramPreview
                     text={editedText}
@@ -417,14 +417,14 @@ export default function CreatePost() {
                   />
                 </div>
 
-                <div className="glass-card rounded-2xl p-6">
+                <div className="glass-card rounded-2xl p-4 md:p-6">
                   <ChannelSelector
                     selectedChannel={selectedChannel}
                     onSelect={setSelectedChannel}
                   />
                 </div>
 
-                <div className="glass-card rounded-2xl p-6">
+                <div className="glass-card rounded-2xl p-4 md:p-6">
                   <ScheduleWidget
                     onPublishNow={handlePublishNow}
                     onSchedule={handleSchedule}
