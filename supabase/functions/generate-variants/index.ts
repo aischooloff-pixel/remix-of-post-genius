@@ -25,7 +25,7 @@ serve(async (req) => {
   }
 
   try {
-    const { idea, tone, length, goal, targetAudience, systemPrompt } = await req.json();
+    const { idea, tone, length, goal, targetAudience, systemPrompt, template } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -33,6 +33,10 @@ serve(async (req) => {
     }
 
     console.log("Generating variants for idea:", idea.substring(0, 50) + "...");
+
+    const templateInstruction = template 
+      ? `\n\nСТРУКТУРА ПОСТА (следуй этому шаблону):\n${template}\n`
+      : '';
 
     const defaultSystemPrompt = `Ты — профессиональный автор постов для Telegram. Задача: по идее/бриффу сгенерировать 3 варианта поста:
 1) Короткий крючок (hook) + практический совет, 1–3 предложения.
@@ -42,7 +46,7 @@ serve(async (req) => {
 Тон: ${TONE_LABELS[tone] || tone}
 Длина: ${LENGTH_LABELS[length] || length}
 ${goal ? `Цель: ${goal}` : ''}
-${targetAudience ? `Целевая аудитория: ${targetAudience}` : ''}
+${targetAudience ? `Целевая аудитория: ${targetAudience}` : ''}${templateInstruction}
 
 Ограничения: максимум 3 эмодзи; результат должен быть совместим с MarkdownV2. Не придумывай фактов.
 
