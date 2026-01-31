@@ -6,12 +6,12 @@ import {
   Bot,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import telepostLogo from "@/assets/telepost-logo.png";
 
 interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
@@ -106,9 +106,14 @@ export function Sidebar() {
       {/* Logo */}
       <div className="p-4 border-b border-border">
         <Link to="/" className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center glow-effect">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
+          <img 
+            src={telepostLogo} 
+            alt="TelePost" 
+            className={cn(
+              "object-contain transition-all duration-300",
+              collapsed ? "w-9 h-9" : "w-12 h-12"
+            )} 
+          />
           {!collapsed && (
             <div className="flex flex-col">
               <span className="text-lg font-bold gradient-text">TelePost</span>
