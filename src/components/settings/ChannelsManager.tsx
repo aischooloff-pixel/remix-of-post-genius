@@ -38,7 +38,7 @@ export function ChannelsManager() {
         : `@${channelUsername}`;
 
     const result = await addChannel(
-      selectedBot.encryptedToken,
+      selectedBot.token,
       selectedBot.id,
       formattedUsername
     );

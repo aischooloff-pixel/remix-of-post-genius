@@ -45,7 +45,7 @@ export function ChannelSelector({ selectedChannel, onSelect }: ChannelSelectorPr
           id: channel.id,
           channelId: channel.channelId,
           channelTitle: channel.channelTitle || channel.channelUsername || channel.channelId,
-          botToken: bot.encryptedToken,
+          botToken: bot.token,
         });
       }
     }

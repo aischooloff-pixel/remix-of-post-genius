@@ -1,6 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 
 export interface SystemPrompt {
@@ -11,6 +9,8 @@ export interface SystemPrompt {
   isPublic: boolean;
   createdAt: Date;
 }
+
+const STORAGE_KEY = "system_prompts";
 
 const DEFAULT_PROMPT_TEXT = `Ты — профессиональный автор постов для Telegram. Задача: по идее/бриффу сгенерировать 3 варианта поста:
 1) Короткий крючок (hook) + практический совет, 1–3 предложения.
@@ -24,144 +24,81 @@ const DEFAULT_PROMPT_TEXT = `Ты — профессиональный авто�
 
 Ограничения: максимум 3 эмодзи; результат должен быть совместим с MarkdownV2. Не придумывай фактов.`;
 
+const createDefaultPrompt = (): SystemPrompt => ({
+  id: crypto.randomUUID(),
+  name: "Стандартный промпт",
+  promptText: DEFAULT_PROMPT_TEXT,
+  isDefault: true,
+  isPublic: false,
+  createdAt: new Date(),
+});
+
 export function useSystemPrompts() {
-  const { user } = useAuth();
   const [prompts, setPrompts] = useState<SystemPrompt[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchPrompts = useCallback(async () => {
-    if (!user) {
-      setPrompts([]);
-      setLoading(false);
-      return;
-    }
-
+  const loadFromStorage = useCallback(() => {
     try {
-      const { data, error } = await supabase
-        .from("system_prompts")
-        .select("*")
-        .or(`user_id.eq.${user.id},is_public.eq.true`)
-        .order("is_default", { ascending: false })
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      if (data.length === 0) {
-        // Create default prompt for new users
-        const { data: newPrompt, error: createError } = await supabase
-          .from("system_prompts")
-          .insert({
-            user_id: user.id,
-            name: "Стандартный промпт",
-            prompt_text: DEFAULT_PROMPT_TEXT,
-            is_default: true,
-            is_public: false,
-          })
-          .select()
-          .single();
-
-        if (createError) throw createError;
-
-        setPrompts([
-          {
-            id: newPrompt.id,
-            name: newPrompt.name,
-            promptText: newPrompt.prompt_text,
-            isDefault: newPrompt.is_default ?? false,
-            isPublic: newPrompt.is_public ?? false,
-            createdAt: new Date(newPrompt.created_at!),
-          },
-        ]);
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setPrompts(parsed.map((prompt: any) => ({
+          ...prompt,
+          createdAt: new Date(prompt.createdAt),
+        })));
       } else {
-        setPrompts(
-          data.map((prompt) => ({
-            id: prompt.id,
-            name: prompt.name,
-            promptText: prompt.prompt_text,
-            isDefault: prompt.is_default ?? false,
-            isPublic: prompt.is_public ?? false,
-            createdAt: new Date(prompt.created_at!),
-          }))
-        );
+        // Create default prompt
+        const defaultPrompt = createDefaultPrompt();
+        setPrompts([defaultPrompt]);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify([defaultPrompt]));
       }
-    } catch (error: any) {
-      console.error("Error fetching prompts:", error);
-      toast.error("Ошибка загрузки промптов");
+    } catch (error) {
+      console.error("Error loading prompts:", error);
+      const defaultPrompt = createDefaultPrompt();
+      setPrompts([defaultPrompt]);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, []);
+
+  const saveToStorage = (newPrompts: SystemPrompt[]) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newPrompts));
+  };
 
   useEffect(() => {
-    fetchPrompts();
-  }, [fetchPrompts]);
+    loadFromStorage();
+  }, [loadFromStorage]);
 
   const addPrompt = async (name: string, promptText: string): Promise<SystemPrompt | null> => {
-    if (!user) {
-      toast.error("Необходимо авторизоваться");
-      return null;
-    }
+    const newPrompt: SystemPrompt = {
+      id: crypto.randomUUID(),
+      name,
+      promptText,
+      isDefault: false,
+      isPublic: false,
+      createdAt: new Date(),
+    };
 
-    try {
-      const { data: insertedPrompt, error } = await supabase
-        .from("system_prompts")
-        .insert({
-          user_id: user.id,
-          name,
-          prompt_text: promptText,
-          is_default: false,
-          is_public: false,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      const newPrompt: SystemPrompt = {
-        id: insertedPrompt.id,
-        name: insertedPrompt.name,
-        promptText: insertedPrompt.prompt_text,
-        isDefault: insertedPrompt.is_default ?? false,
-        isPublic: insertedPrompt.is_public ?? false,
-        createdAt: new Date(insertedPrompt.created_at!),
-      };
-
-      setPrompts((prev) => [...prev, newPrompt]);
-      toast.success("Промпт создан!");
-      return newPrompt;
-    } catch (error: any) {
-      console.error("Error adding prompt:", error);
-      toast.error("Ошибка создания промпта");
-      return null;
-    }
+    const newPrompts = [...prompts, newPrompt];
+    setPrompts(newPrompts);
+    saveToStorage(newPrompts);
+    
+    toast.success("Промпт создан!");
+    return newPrompt;
   };
 
   const updatePrompt = async (
     id: string,
     updates: { name?: string; promptText?: string }
   ): Promise<boolean> => {
-    try {
-      const dbUpdates: Record<string, unknown> = {};
-      if (updates.name) dbUpdates.name = updates.name;
-      if (updates.promptText) dbUpdates.prompt_text = updates.promptText;
-
-      const { error } = await supabase
-        .from("system_prompts")
-        .update(dbUpdates)
-        .eq("id", id);
-
-      if (error) throw error;
-
-      setPrompts((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
-      );
-      toast.success("Промпт обновлён!");
-      return true;
-    } catch (error: any) {
-      console.error("Error updating prompt:", error);
-      toast.error("Ошибка обновления промпта");
-      return false;
-    }
+    const newPrompts = prompts.map((p) =>
+      p.id === id ? { ...p, ...updates } : p
+    );
+    setPrompts(newPrompts);
+    saveToStorage(newPrompts);
+    
+    toast.success("Промпт обновлён!");
+    return true;
   };
 
   const deletePrompt = async (id: string): Promise<boolean> => {
@@ -171,49 +108,24 @@ export function useSystemPrompts() {
       return false;
     }
 
-    try {
-      const { error } = await supabase.from("system_prompts").delete().eq("id", id);
-
-      if (error) throw error;
-
-      setPrompts((prev) => prev.filter((p) => p.id !== id));
-      toast.success("Промпт удалён");
-      return true;
-    } catch (error: any) {
-      console.error("Error deleting prompt:", error);
-      toast.error("Ошибка удаления промпта");
-      return false;
-    }
+    const newPrompts = prompts.filter((p) => p.id !== id);
+    setPrompts(newPrompts);
+    saveToStorage(newPrompts);
+    
+    toast.success("Промпт удалён");
+    return true;
   };
 
   const setDefaultPrompt = async (id: string): Promise<boolean> => {
-    if (!user) return false;
-
-    try {
-      // First, unset all defaults for this user
-      await supabase
-        .from("system_prompts")
-        .update({ is_default: false })
-        .eq("user_id", user.id);
-
-      // Then set the new default
-      const { error } = await supabase
-        .from("system_prompts")
-        .update({ is_default: true })
-        .eq("id", id);
-
-      if (error) throw error;
-
-      setPrompts((prev) =>
-        prev.map((p) => ({ ...p, isDefault: p.id === id }))
-      );
-      toast.success("Промпт установлен по умолчанию");
-      return true;
-    } catch (error: any) {
-      console.error("Error setting default prompt:", error);
-      toast.error("Ошибка установки промпта по умолчанию");
-      return false;
-    }
+    const newPrompts = prompts.map((p) => ({
+      ...p,
+      isDefault: p.id === id,
+    }));
+    setPrompts(newPrompts);
+    saveToStorage(newPrompts);
+    
+    toast.success("Промпт установлен по умолчанию");
+    return true;
   };
 
   const duplicatePrompt = async (prompt: SystemPrompt): Promise<SystemPrompt | null> => {
@@ -233,6 +145,6 @@ export function useSystemPrompts() {
     setDefaultPrompt,
     duplicatePrompt,
     getDefaultPrompt,
-    refetch: fetchPrompts,
+    refetch: loadFromStorage,
   };
 }

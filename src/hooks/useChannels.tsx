@@ -1,6 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 
 export interface Channel {
@@ -13,60 +11,42 @@ export interface Channel {
   createdAt: Date;
 }
 
+const STORAGE_KEY = "telegram_channels";
+
 export function useChannels() {
-  const { user } = useAuth();
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchChannels = useCallback(async () => {
-    if (!user) {
-      setChannels([]);
-      setLoading(false);
-      return;
-    }
-
+  const loadFromStorage = useCallback(() => {
     try {
-      const { data, error } = await supabase
-        .from("channels")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      setChannels(
-        data.map((channel) => ({
-          id: channel.id,
-          channelId: channel.channel_id,
-          channelTitle: channel.channel_title,
-          channelUsername: channel.channel_username,
-          botTokenId: channel.bot_token_id,
-          isActive: channel.is_active ?? true,
-          createdAt: new Date(channel.created_at!),
-        }))
-      );
-    } catch (error: any) {
-      console.error("Error fetching channels:", error);
-      toast.error("Ошибка загрузки каналов");
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setChannels(parsed.map((channel: any) => ({
+          ...channel,
+          createdAt: new Date(channel.createdAt),
+        })));
+      }
+    } catch (error) {
+      console.error("Error loading channels:", error);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, []);
+
+  const saveToStorage = (newChannels: Channel[]) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newChannels));
+  };
 
   useEffect(() => {
-    fetchChannels();
-  }, [fetchChannels]);
+    loadFromStorage();
+  }, [loadFromStorage]);
 
   const addChannel = async (
     botToken: string,
     botTokenId: string,
     channelIdOrUsername: string
   ): Promise<Channel | null> => {
-    if (!user) {
-      toast.error("Необходимо авторизоваться");
-      return null;
-    }
-
     try {
       // Validate channel by calling Telegram API
       const response = await fetch(
@@ -82,32 +62,20 @@ export function useChannels() {
 
       const chatInfo = data.result;
 
-      const { data: insertedChannel, error } = await supabase
-        .from("channels")
-        .insert({
-          user_id: user.id,
-          channel_id: String(chatInfo.id),
-          channel_title: chatInfo.title,
-          channel_username: chatInfo.username ? `@${chatInfo.username}` : null,
-          bot_token_id: botTokenId,
-          is_active: true,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
       const newChannel: Channel = {
-        id: insertedChannel.id,
-        channelId: insertedChannel.channel_id,
-        channelTitle: insertedChannel.channel_title,
-        channelUsername: insertedChannel.channel_username,
-        botTokenId: insertedChannel.bot_token_id,
-        isActive: insertedChannel.is_active ?? true,
-        createdAt: new Date(insertedChannel.created_at!),
+        id: crypto.randomUUID(),
+        channelId: String(chatInfo.id),
+        channelTitle: chatInfo.title,
+        channelUsername: chatInfo.username ? `@${chatInfo.username}` : null,
+        botTokenId: botTokenId,
+        isActive: true,
+        createdAt: new Date(),
       };
 
-      setChannels((prev) => [newChannel, ...prev]);
+      const newChannels = [newChannel, ...channels];
+      setChannels(newChannels);
+      saveToStorage(newChannels);
+      
       toast.success(`Канал ${chatInfo.title} добавлен!`);
       return newChannel;
     } catch (error: any) {
@@ -118,38 +86,18 @@ export function useChannels() {
   };
 
   const removeChannel = async (id: string) => {
-    try {
-      const { error } = await supabase.from("channels").delete().eq("id", id);
-
-      if (error) throw error;
-
-      setChannels((prev) => prev.filter((c) => c.id !== id));
-      toast.success("Канал удалён");
-    } catch (error: any) {
-      console.error("Error removing channel:", error);
-      toast.error("Ошибка удаления канала");
-    }
+    const newChannels = channels.filter((c) => c.id !== id);
+    setChannels(newChannels);
+    saveToStorage(newChannels);
+    toast.success("Канал удалён");
   };
 
   const toggleChannel = async (id: string) => {
-    const channel = channels.find((c) => c.id === id);
-    if (!channel) return;
-
-    try {
-      const { error } = await supabase
-        .from("channels")
-        .update({ is_active: !channel.isActive })
-        .eq("id", id);
-
-      if (error) throw error;
-
-      setChannels((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, isActive: !c.isActive } : c))
-      );
-    } catch (error: any) {
-      console.error("Error toggling channel:", error);
-      toast.error("Ошибка обновления канала");
-    }
+    const newChannels = channels.map((c) =>
+      c.id === id ? { ...c, isActive: !c.isActive } : c
+    );
+    setChannels(newChannels);
+    saveToStorage(newChannels);
   };
 
   return {
@@ -158,6 +106,6 @@ export function useChannels() {
     addChannel,
     removeChannel,
     toggleChannel,
-    refetch: fetchChannels,
+    refetch: loadFromStorage,
   };
 }
