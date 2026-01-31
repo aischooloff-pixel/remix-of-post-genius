@@ -120,10 +120,13 @@ export function IdeaForm({ onSubmit, isLoading }: IdeaFormProps) {
             onChange={(e) => setTemplate(e.target.value)}
             className="min-h-[140px] resize-none bg-secondary/50 border-border/50 focus:border-primary font-mono text-sm"
           />
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span>Форматирование:</span>
             <code className="bg-muted px-1.5 py-0.5 rounded">**жирный**</code>
             <code className="bg-muted px-1.5 py-0.5 rounded">_курсив_</code>
+            <code className="bg-muted px-1.5 py-0.5 rounded">[ссылка](url)</code>
+            <code className="bg-muted px-1.5 py-0.5 rounded">||скрытый||</code>
+            <code className="bg-muted px-1.5 py-0.5 rounded">&gt; цитата</code>
             <code className="bg-muted px-1.5 py-0.5 rounded">— список</code>
           </div>
           <div className="flex gap-2">
