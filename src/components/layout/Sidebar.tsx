@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Sparkles,
 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -31,6 +32,12 @@ const toolsNav: NavItem[] = [
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const isMobile = useIsMobile();
+
+  // Don't render on mobile - MobileSidebar handles that
+  if (isMobile) {
+    return null;
+  }
 
   const NavLink = ({ item }: { item: NavItem }) => {
     const isActive = location.pathname === item.href;
