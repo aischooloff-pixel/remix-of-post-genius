@@ -17,8 +17,11 @@ import {
   InlineButton,
 } from "@/types/post";
 import { toast } from "sonner";
-import { ArrowLeft, ChevronRight, Settings } from "lucide-react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import { useAI } from "@/hooks/useAI";
+import { usePosts } from "@/hooks/usePosts";
+import { useBots } from "@/hooks/useBots";
+import { useChannels } from "@/hooks/useChannels";
 import { supabase } from "@/integrations/supabase/client";
 
 type Step = "idea" | "variants" | "edit";
@@ -32,6 +35,8 @@ interface SelectedChannel {
 
 export default function CreatePost() {
   const [step, setStep] = useState<Step>("idea");
+  const [currentPostId, setCurrentPostId] = useState<string | null>(null);
+  const [ideaData, setIdeaData] = useState<IdeaFormData | null>(null);
   const [variants, setVariants] = useState<PostVariant[]>([]);
   const [selectedVariantId, setSelectedVariantId] = useState<string>();
   const [editedText, setEditedText] = useState("");
@@ -42,17 +47,41 @@ export default function CreatePost() {
   const [isPublishing, setIsPublishing] = useState(false);
   
   const { generateVariants, editByAI, isGeneratingVariants } = useAI();
+  const { createPost, updatePost } = usePosts();
+  const { bots } = useBots();
+  const { channels } = useChannels();
 
   const handleGenerateVariants = useCallback(async (data: IdeaFormData) => {
     try {
+      // Create post in database
+      const post = await createPost({
+        ideaText: data.idea,
+        tone: data.tone,
+        length: data.length,
+        goal: data.goal,
+        targetAudience: data.targetAudience,
+        systemPromptId: data.systemPromptId,
+      });
+
+      if (post) {
+        setCurrentPostId(post.id);
+      }
+
+      setIdeaData(data);
       const generatedVariants = await generateVariants(data);
       setVariants(generatedVariants);
+      
+      // Save variants to database
+      if (post) {
+        await updatePost(post.id, { variants: generatedVariants });
+      }
+
       setStep("variants");
       toast.success(`Сгенерировано ${generatedVariants.length} варианта!`);
     } catch (error) {
       // Error already handled in useAI hook
     }
-  }, [generateVariants]);
+  }, [generateVariants, createPost, updatePost]);
 
   const handleSelectVariant = (variantId: string) => {
     setSelectedVariantId(variantId);
@@ -63,11 +92,22 @@ export default function CreatePost() {
     }
   };
 
-  const handleProceedToEdit = () => {
+  const handleProceedToEdit = async () => {
     if (!selectedVariantId) {
       toast.error("Выберите вариант");
       return;
     }
+    
+    // Save chosen variant to database
+    if (currentPostId) {
+      const variant = variants.find((v) => v.id === selectedVariantId);
+      await updatePost(currentPostId, { 
+        chosenVariantId: selectedVariantId,
+        editedTextMarkdown: variant?.textMarkdown,
+        editedTextHtml: variant?.textHtml,
+      });
+    }
+    
     setStep("edit");
   };
 
@@ -85,6 +125,17 @@ export default function CreatePost() {
     setIsPublishing(true);
 
     try {
+      // Update post status to sending
+      if (currentPostId) {
+        await updatePost(currentPostId, { 
+          status: "sending",
+          channelId: selectedChannel.id,
+          media,
+          buttons,
+          editedTextMarkdown: editedMarkdown,
+        });
+      }
+
       const { data, error } = await supabase.functions.invoke('publish-post', {
         body: {
           botToken: selectedChannel.botToken,
@@ -107,18 +158,30 @@ export default function CreatePost() {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
+      // Update post status to sent
+      if (currentPostId) {
+        await updatePost(currentPostId, { 
+          status: "sent",
+          telegramMessageId: data.messageId,
+          sentAt: new Date(),
+        });
+      }
+
       toast.success("Пост успешно опубликован в канал!");
       
       // Reset form
-      setStep("idea");
-      setVariants([]);
-      setSelectedVariantId(undefined);
-      setEditedText("");
-      setEditedMarkdown("");
-      setMedia([]);
-      setButtons([]);
+      resetForm();
     } catch (error: any) {
       console.error("Publish error:", error);
+      
+      // Update post status to failed
+      if (currentPostId) {
+        await updatePost(currentPostId, { 
+          status: "failed",
+          errorMessage: error.message,
+        });
+      }
+      
       toast.error(`Ошибка публикации: ${error.message}`);
     } finally {
       setIsPublishing(false);
@@ -134,6 +197,18 @@ export default function CreatePost() {
     setIsPublishing(true);
 
     try {
+      // Update post with schedule
+      if (currentPostId) {
+        await updatePost(currentPostId, { 
+          status: "scheduled",
+          channelId: selectedChannel.id,
+          scheduleDatetime: datetime,
+          media,
+          buttons,
+          editedTextMarkdown: editedMarkdown,
+        });
+      }
+
       const { data, error } = await supabase.functions.invoke('publish-post', {
         body: {
           botToken: selectedChannel.botToken,
@@ -160,14 +235,45 @@ export default function CreatePost() {
       if (data.scheduled) {
         toast.success(`Пост запланирован на ${datetime.toLocaleString("ru-RU")}`);
       } else {
+        // Update post status to sent if it was published immediately
+        if (currentPostId) {
+          await updatePost(currentPostId, { 
+            status: "sent",
+            telegramMessageId: data.messageId,
+            sentAt: new Date(),
+          });
+        }
         toast.info("Telegram не поддерживает планирование менее 5 минут. Пост опубликован сейчас.");
       }
+      
+      resetForm();
     } catch (error: any) {
       console.error("Schedule error:", error);
+      
+      if (currentPostId) {
+        await updatePost(currentPostId, { 
+          status: "failed",
+          errorMessage: error.message,
+        });
+      }
+      
       toast.error(`Ошибка планирования: ${error.message}`);
     } finally {
       setIsPublishing(false);
     }
+  };
+
+  const resetForm = () => {
+    setStep("idea");
+    setCurrentPostId(null);
+    setIdeaData(null);
+    setVariants([]);
+    setSelectedVariantId(undefined);
+    setEditedText("");
+    setEditedMarkdown("");
+    setMedia([]);
+    setButtons([]);
+    setSelectedChannel(null);
   };
 
   const handleAIEdit = async (instruction: string) => {
@@ -176,6 +282,15 @@ export default function CreatePost() {
       const result = await editByAI(editedText, instruction);
       setEditedText(result.text);
       setEditedMarkdown(result.textMarkdown);
+      
+      // Save to database
+      if (currentPostId) {
+        await updatePost(currentPostId, { 
+          editedTextMarkdown: result.textMarkdown,
+          editedTextHtml: result.textHtml,
+        });
+      }
+      
       toast.success("Текст обновлён!");
     } catch (error) {
       // Error already handled in useAI hook

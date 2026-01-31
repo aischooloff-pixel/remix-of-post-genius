@@ -3,7 +3,6 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { BotTokensManager } from "@/components/settings/BotTokensManager";
 import { ChannelsManager } from "@/components/settings/ChannelsManager";
 import { SystemPromptsManager } from "@/components/settings/SystemPromptsManager";
-import { SettingsProvider } from "@/contexts/SettingsContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bot, MessageSquare, FileText } from "lucide-react";
 
@@ -20,36 +19,34 @@ export default function Settings() {
           </p>
         </div>
 
-        <SettingsProvider>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 mb-8">
-              <TabsTrigger value="bots" className="flex items-center gap-2">
-                <Bot className="w-4 h-4" />
-                Боты
-              </TabsTrigger>
-              <TabsTrigger value="channels" className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" />
-                Каналы
-              </TabsTrigger>
-              <TabsTrigger value="prompts" className="flex items-center gap-2">
-                <FileText className="w-4 h-4" />
-                Промпты
-              </TabsTrigger>
-            </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-3 mb-8">
+            <TabsTrigger value="bots" className="flex items-center gap-2">
+              <Bot className="w-4 h-4" />
+              Боты
+            </TabsTrigger>
+            <TabsTrigger value="channels" className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4" />
+              Каналы
+            </TabsTrigger>
+            <TabsTrigger value="prompts" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Промпты
+            </TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="bots">
-              <BotTokensManager />
-            </TabsContent>
+          <TabsContent value="bots">
+            <BotTokensManager />
+          </TabsContent>
 
-            <TabsContent value="channels">
-              <ChannelsManager />
-            </TabsContent>
+          <TabsContent value="channels">
+            <ChannelsManager />
+          </TabsContent>
 
-            <TabsContent value="prompts">
-              <SystemPromptsManager />
-            </TabsContent>
-          </Tabs>
-        </SettingsProvider>
+          <TabsContent value="prompts">
+            <SystemPromptsManager />
+          </TabsContent>
+        </Tabs>
       </div>
     </MainLayout>
   );

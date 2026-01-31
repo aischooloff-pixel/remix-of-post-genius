@@ -4,12 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Bot, Plus, Trash2, CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react";
-import { toast } from "sonner";
-import { useSettings } from "@/contexts/SettingsContext";
+import { Bot, Plus, Trash2, CheckCircle, AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
+import { useBots } from "@/hooks/useBots";
 
 export function BotTokensManager() {
-  const { bots, addBot, removeBot, toggleBot } = useSettings();
+  const { bots, loading, addBot, removeBot, toggleBot } = useBots();
   const [isAddingBot, setIsAddingBot] = useState(false);
   const [newToken, setNewToken] = useState("");
   const [showToken, setShowToken] = useState(false);
@@ -17,41 +16,34 @@ export function BotTokensManager() {
 
   const handleAddBot = async () => {
     if (!newToken.trim()) {
-      toast.error("Введите токен бота");
       return;
     }
 
     setIsValidating(true);
-    
-    // Simulate token validation (in real app, would call Telegram API)
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    // Extract bot name from token (simplified - in reality would call getMe API)
-    const botId = Date.now().toString();
-    const botUsername = `@bot_${botId.slice(-6)}`;
-    
-    addBot({
-      id: botId,
-      botUsername,
-      botName: `Bot ${botId.slice(-4)}`,
-      isActive: true,
-      createdAt: new Date(),
-    });
-
-    setNewToken("");
-    setIsAddingBot(false);
+    const result = await addBot(newToken.trim());
     setIsValidating(false);
-    toast.success("Бот успешно добавлен!");
+
+    if (result) {
+      setNewToken("");
+      setIsAddingBot(false);
+    }
   };
 
-  const handleDeleteBot = (id: string) => {
-    removeBot(id);
-    toast.success("Бот удалён");
+  const handleDeleteBot = async (id: string) => {
+    await removeBot(id);
   };
 
-  const handleToggleBot = (id: string) => {
-    toggleBot(id);
+  const handleToggleBot = async (id: string) => {
+    await toggleBot(id);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -102,15 +94,22 @@ export function BotTokensManager() {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Токен будет зашифрован и безопасно сохранён
+                  Токен будет безопасно сохранён в базе данных
                 </p>
               </div>
               <Button
                 onClick={handleAddBot}
-                disabled={isValidating}
+                disabled={isValidating || !newToken.trim()}
                 className="w-full"
               >
-                {isValidating ? "Проверка токена..." : "Добавить бота"}
+                {isValidating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Проверка токена...
+                  </>
+                ) : (
+                  "Добавить бота"
+                )}
               </Button>
             </div>
           </DialogContent>
@@ -145,8 +144,8 @@ export function BotTokensManager() {
                       <Bot className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg">{bot.botName}</CardTitle>
-                      <CardDescription>{bot.botUsername}</CardDescription>
+                      <CardTitle className="text-lg">{bot.botName || "Бот"}</CardTitle>
+                      <CardDescription>{bot.botUsername || "Неизвестный"}</CardDescription>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,26 +18,16 @@ import {
   Trash2,
   Eye,
   Send,
-  FileText
+  FileText,
+  Loader2
 } from "lucide-react";
 import { PostStatus } from "@/types/post";
-import { toast } from "sonner";
+import { usePosts } from "@/hooks/usePosts";
+import { useChannels } from "@/hooks/useChannels";
 
 interface PostHistoryListProps {
   statusFilter: PostStatus | "all";
   searchQuery: string;
-}
-
-interface HistoryPost {
-  id: string;
-  ideaText: string;
-  editedText: string;
-  status: PostStatus;
-  channelTitle: string;
-  scheduleDatetime?: Date;
-  sentAt?: Date;
-  createdAt: Date;
-  errorMessage?: string;
 }
 
 const STATUS_CONFIG: Record<PostStatus, { label: string; color: string; icon: React.ReactNode }> = {
@@ -51,40 +40,46 @@ const STATUS_CONFIG: Record<PostStatus, { label: string; color: string; icon: Re
 };
 
 export function PostHistoryList({ statusFilter, searchQuery }: PostHistoryListProps) {
-  const [posts, setPosts] = useState<HistoryPost[]>([]);
+  const { posts, loading, updatePost, deletePost } = usePosts();
+  const { channels } = useChannels();
+
+  const getChannelTitle = (channelId: string | null) => {
+    if (!channelId) return "Не выбран";
+    const channel = channels.find((c) => c.id === channelId);
+    return channel?.channelTitle || channel?.channelUsername || "Неизвестный канал";
+  };
 
   const filteredPosts = posts.filter((post) => {
     const matchesStatus = statusFilter === "all" || post.status === statusFilter;
     const matchesSearch = 
       post.ideaText.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.editedText.toLowerCase().includes(searchQuery.toLowerCase());
+      (post.editedTextMarkdown || "").toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
-  const handleRetry = (id: string) => {
-    setPosts(posts.map((p) => 
-      p.id === id ? { ...p, status: "sending" as PostStatus, errorMessage: undefined } : p
-    ));
-    toast.info("Повторная отправка...");
-    setTimeout(() => {
-      setPosts((prev) => prev.map((p) => 
-        p.id === id ? { ...p, status: "sent" as PostStatus, sentAt: new Date() } : p
-      ));
-      toast.success("Пост отправлен!");
+  const handleRetry = async (id: string) => {
+    await updatePost(id, { status: "sending", errorMessage: undefined as unknown as string });
+    // In a real app, this would trigger the publish-post edge function
+    setTimeout(async () => {
+      await updatePost(id, { status: "sent", sentAt: new Date() });
     }, 2000);
   };
 
-  const handleCancel = (id: string) => {
-    setPosts(posts.map((p) => 
-      p.id === id ? { ...p, status: "cancelled" as PostStatus } : p
-    ));
-    toast.success("Публикация отменена");
+  const handleCancel = async (id: string) => {
+    await updatePost(id, { status: "cancelled" });
   };
 
-  const handleDelete = (id: string) => {
-    setPosts(posts.filter((p) => p.id !== id));
-    toast.success("Пост удалён");
+  const handleDelete = async (id: string) => {
+    await deletePost(id);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (filteredPosts.length === 0) {
     return (
@@ -105,6 +100,7 @@ export function PostHistoryList({ statusFilter, searchQuery }: PostHistoryListPr
     <div className="space-y-4">
       {filteredPosts.map((post) => {
         const statusConfig = STATUS_CONFIG[post.status];
+        const displayText = post.editedTextMarkdown || post.ideaText;
         
         return (
           <Card key={post.id} className="glass-card">
@@ -117,14 +113,14 @@ export function PostHistoryList({ statusFilter, searchQuery }: PostHistoryListPr
                       {statusConfig.label}
                     </Badge>
                     <span className="text-sm text-muted-foreground">
-                      {post.channelTitle}
+                      {getChannelTitle(post.channelId)}
                     </span>
                   </div>
                   <CardTitle className="text-lg line-clamp-1">
                     {post.ideaText}
                   </CardTitle>
                   <CardDescription className="line-clamp-2 mt-1">
-                    {post.editedText}
+                    {displayText}
                   </CardDescription>
                 </div>
                 <DropdownMenu>

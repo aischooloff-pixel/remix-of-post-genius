@@ -5,12 +5,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageSquare, Plus, Trash2, CheckCircle, AlertCircle } from "lucide-react";
-import { toast } from "sonner";
-import { useSettings } from "@/contexts/SettingsContext";
+import { MessageSquare, Plus, Trash2, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { useBots } from "@/hooks/useBots";
+import { useChannels } from "@/hooks/useChannels";
 
 export function ChannelsManager() {
-  const { bots, channels, addChannel, removeChannel } = useSettings();
+  const { bots } = useBots();
+  const { channels, loading, addChannel, removeChannel } = useChannels();
   const [isAddingChannel, setIsAddingChannel] = useState(false);
   const [channelUsername, setChannelUsername] = useState("");
   const [selectedBotId, setSelectedBotId] = useState("");
@@ -20,47 +21,54 @@ export function ChannelsManager() {
 
   const handleAddChannel = async () => {
     if (!channelUsername.trim() || !selectedBotId) {
-      toast.error("Заполните все поля");
       return;
     }
 
     const selectedBot = bots.find((b) => b.id === selectedBotId);
     if (!selectedBot) {
-      toast.error("Бот не найден");
       return;
     }
 
     setIsValidating(true);
     
-    // Simulate channel validation
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
     const formattedUsername = channelUsername.startsWith("@") 
       ? channelUsername 
-      : `@${channelUsername}`;
+      : channelUsername.startsWith("-")
+        ? channelUsername
+        : `@${channelUsername}`;
 
-    addChannel({
-      id: Date.now().toString(),
-      channelId: "-100" + Date.now(),
-      channelTitle: channelUsername.replace("@", ""),
-      channelUsername: formattedUsername,
-      botId: selectedBotId,
-      botName: selectedBot.botName,
-      isActive: true,
-      createdAt: new Date(),
-    });
-
-    setChannelUsername("");
-    setSelectedBotId("");
-    setIsAddingChannel(false);
+    const result = await addChannel(
+      selectedBot.encryptedToken,
+      selectedBot.id,
+      formattedUsername
+    );
+    
     setIsValidating(false);
-    toast.success("Канал успешно добавлен!");
+
+    if (result) {
+      setChannelUsername("");
+      setSelectedBotId("");
+      setIsAddingChannel(false);
+    }
   };
 
-  const handleDeleteChannel = (id: string) => {
-    removeChannel(id);
-    toast.success("Канал удалён");
+  const handleDeleteChannel = async (id: string) => {
+    await removeChannel(id);
   };
+
+  const getBotName = (botTokenId: string | null) => {
+    if (!botTokenId) return "Неизвестный бот";
+    const bot = bots.find((b) => b.id === botTokenId);
+    return bot?.botName || "Неизвестный бот";
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -82,15 +90,15 @@ export function ChannelsManager() {
             <DialogHeader>
               <DialogTitle>Добавить канал</DialogTitle>
               <DialogDescription>
-                Укажите username канала и выберите бота для публикации
+                Укажите username или ID канала и выберите бота для публикации
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="channel">Username канала</Label>
+                <Label htmlFor="channel">Username или ID канала</Label>
                 <Input
                   id="channel"
-                  placeholder="@my_channel"
+                  placeholder="@my_channel или -1001234567890"
                   value={channelUsername}
                   onChange={(e) => setChannelUsername(e.target.value)}
                 />
@@ -115,15 +123,22 @@ export function ChannelsManager() {
                   </p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Бот должен быть администратором канала
+                  Бот должен быть администратором канала с правами публикации
                 </p>
               </div>
               <Button
                 onClick={handleAddChannel}
-                disabled={isValidating || activeBots.length === 0}
+                disabled={isValidating || activeBots.length === 0 || !channelUsername.trim() || !selectedBotId}
                 className="w-full"
               >
-                {isValidating ? "Проверка прав..." : "Добавить канал"}
+                {isValidating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Проверка прав...
+                  </>
+                ) : (
+                  "Добавить канал"
+                )}
               </Button>
             </div>
           </DialogContent>
@@ -170,8 +185,8 @@ export function ChannelsManager() {
                       <MessageSquare className="w-5 h-5 text-blue-400" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg">{channel.channelTitle}</CardTitle>
-                      <CardDescription>{channel.channelUsername}</CardDescription>
+                      <CardTitle className="text-lg">{channel.channelTitle || "Канал"}</CardTitle>
+                      <CardDescription>{channel.channelUsername || channel.channelId}</CardDescription>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -192,7 +207,7 @@ export function ChannelsManager() {
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-muted-foreground">
-                    <span>Бот: {channel.botName}</span>
+                    <span>Бот: {getBotName(channel.botTokenId)}</span>
                     <span className="mx-2">•</span>
                     <span>ID: {channel.channelId}</span>
                   </div>
