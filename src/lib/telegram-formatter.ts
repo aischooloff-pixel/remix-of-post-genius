@@ -2,38 +2,37 @@
 export function markdownToTelegramHtml(text: string): string {
   let result = text;
   
-  // Order matters! Process from most complex to simplest
-  
-  // Bold: **text** or *text* → <b>text</b>
-  result = result.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
-  result = result.replace(/\*(.+?)\*/g, '<b>$1</b>');
-  
-  // Italic: _text_ → <i>text</i>
-  result = result.replace(/_(.+?)_/g, '<i>$1</i>');
-  
-  // Underline: __text__ → <u>text</u>
-  result = result.replace(/__(.+?)__/g, '<u>$1</u>');
-  
-  // Strikethrough: ~text~ → <s>text</s>
-  result = result.replace(/~(.+?)~/g, '<s>$1</s>');
-  
-  // Spoiler: ||text|| → <tg-spoiler>text</tg-spoiler>
-  result = result.replace(/\|\|(.+?)\|\|/g, '<tg-spoiler>$1</tg-spoiler>');
-  
-  // Code: `text` → <code>text</code>
-  result = result.replace(/`(.+?)`/g, '<code>$1</code>');
+  // CRITICAL: Process links FIRST before other formatting
+  // This prevents other regex from breaking link structure
+  // Links: [text](url) → <a href="url">text</a>
+  result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
   
   // Pre (code block): ```text``` → <pre>text</pre>
-  result = result.replace(/```(.+?)```/gs, '<pre>$1</pre>');
+  // Process before inline code to avoid conflicts
+  result = result.replace(/```([\s\S]+?)```/g, '<pre>$1</pre>');
   
-  // Links: [text](url) → <a href="url">text</a>
-  result = result.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2">$1</a>');
+  // Code: `text` → <code>text</code>
+  result = result.replace(/`([^`]+)`/g, '<code>$1</code>');
   
-  // Escape special HTML characters that weren't part of formatting
-  // Note: We only escape < and > that are not part of our tags
-  // This is tricky, so we'll leave this for now
+  // Spoiler: ||text|| → <tg-spoiler>text</tg-spoiler>
+  result = result.replace(/\|\|([^|]+)\|\|/g, '<tg-spoiler>$1</tg-spoiler>');
   
-  // Newlines: \n stays as is (Telegram handles them)
+  // Underline: __text__ → <u>text</u>
+  // Process BEFORE italic to avoid _ matching inside __
+  result = result.replace(/__([^_]+)__/g, '<u>$1</u>');
+  
+  // Bold: **text** → <b>text</b>
+  // Process double asterisks before single
+  result = result.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  
+  // Bold single: *text* → <b>text</b>
+  result = result.replace(/\*([^*]+)\*/g, '<b>$1</b>');
+  
+  // Italic: _text_ → <i>text</i>
+  result = result.replace(/_([^_]+)_/g, '<i>$1</i>');
+  
+  // Strikethrough: ~text~ → <s>text</s>
+  result = result.replace(/~([^~]+)~/g, '<s>$1</s>');
   
   return result;
 }
