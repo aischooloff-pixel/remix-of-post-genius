@@ -27,9 +27,9 @@ serve(async (req) => {
   try {
     const { idea, tone, length, goal, targetAudience, systemPrompt, template } = await req.json();
     
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) {
-      throw new Error("OPENROUTER_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
     }
 
     console.log("Generating variants for idea:", idea.substring(0, 50) + "...");
@@ -77,16 +77,14 @@ ${!template ? `Стили вариантов:
   {"id": "v3", "style": "promo", "styleName": "${template ? 'Вариант C' : 'Продающий'}", "text": "...", "textMarkdown": "...", "textHtml": "..."}
 ]`;
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://lovable.dev",
-        "X-Title": "Telegram Post Generator",
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-3.3-70b-instruct:free",
+        model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt || defaultSystemPrompt },
           { role: "user", content: `Идея для поста:\n\n${idea}` }
