@@ -135,6 +135,11 @@ export function MediaManager({ media, onChange }: MediaManagerProps) {
   };
 
   const handleGenerate = async () => {
+    if (!hasPaid) {
+      toast.error("Оформите доступ для генерации изображений");
+      return;
+    }
+    
     if (!prompt.trim()) {
       toast.error("Введите описание изображения");
       return;

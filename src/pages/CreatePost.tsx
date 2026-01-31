@@ -24,6 +24,7 @@ import { useBots } from "@/hooks/useBots";
 import { useChannels } from "@/hooks/useChannels";
 import { supabase } from "@/integrations/supabase/client";
 import { markdownToTelegramHtml } from "@/lib/telegram-formatter";
+import { useAccessControl } from "@/hooks/useAccessControl";
 
 type Step = "idea" | "edit";
 
@@ -53,6 +54,7 @@ export default function CreatePost() {
   const [isPublishing, setIsPublishing] = useState(false);
   
   const { generateVariants, editByAI, isGeneratingVariants } = useAI();
+  const { hasPaid } = useAccessControl();
   const { posts, createPost, updatePost } = usePosts();
   const { bots } = useBots();
   const { channels } = useChannels();
@@ -100,6 +102,11 @@ export default function CreatePost() {
   }, [editPostId, posts]);
 
   const handleGenerateVariants = useCallback(async (data: IdeaFormData) => {
+    if (!hasPaid) {
+      toast.error("Оформите доступ для генерации постов");
+      return;
+    }
+    
     try {
       // Create post in database
       const post = await createPost({
@@ -142,7 +149,7 @@ export default function CreatePost() {
     } catch (error) {
       // Error already handled in useAI hook
     }
-  }, [generateVariants, createPost, updatePost]);
+  }, [hasPaid, generateVariants, createPost, updatePost]);
 
   const handleSelectVariant = (variantId: string) => {
     setSelectedVariantId(variantId);
@@ -325,6 +332,11 @@ export default function CreatePost() {
   };
 
   const handleAIEdit = async (instruction: string) => {
+    if (!hasPaid) {
+      toast.error("Оформите доступ для AI-редактирования");
+      return;
+    }
+    
     toast.info(`Применяю: ${instruction}`);
     try {
       const result = await editByAI(editedText, instruction);
