@@ -21,7 +21,7 @@ interface NavItem {
 
 const mainNav: NavItem[] = [
   { icon: PenSquare, label: "Создать пост", href: "/" },
-  { icon: History, label: "История постов", href: "/history" },
+  { icon: History, label: "Посты", href: "/history" },
 ];
 
 const toolsNav: NavItem[] = [
