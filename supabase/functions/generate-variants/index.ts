@@ -91,7 +91,7 @@ serve(async (req) => {
       }
       apiKey = LOVABLE_API_KEY;
       endpoint = "https://ai.gateway.lovable.dev/v1/chat/completions";
-      model = "google/gemini-3-flash-preview";
+      model = "google/gemini-2.5-flash-lite";
       console.log("Using fallback Lovable AI");
     }
 
