@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { IdeaForm } from "@/components/post/IdeaForm";
-import { VariantsList } from "@/components/post/VariantsList";
+
 import { PostEditor } from "@/components/post/PostEditor";
 import { TelegramPreview } from "@/components/post/TelegramPreview";
 import { MediaManager } from "@/components/post/MediaManager";
@@ -25,7 +25,7 @@ import { useChannels } from "@/hooks/useChannels";
 import { supabase } from "@/integrations/supabase/client";
 import { markdownToTelegramHtml } from "@/lib/telegram-formatter";
 
-type Step = "idea" | "variants" | "edit";
+type Step = "idea" | "edit";
 
 interface SelectedChannel {
   id: string;
@@ -85,7 +85,7 @@ export default function CreatePost() {
             }
             setStep("edit");
           } else {
-            setStep("variants");
+            setStep("idea");
           }
         } else {
           setStep("idea");
@@ -119,13 +119,26 @@ export default function CreatePost() {
       const generatedVariants = await generateVariants(data);
       setVariants(generatedVariants);
       
-      // Save variants to database
-      if (post) {
-        await updatePost(post.id, { variants: generatedVariants });
+      // Auto-select the first (only) variant and go directly to edit
+      const firstVariant = generatedVariants[0];
+      if (firstVariant) {
+        setSelectedVariantId(firstVariant.id);
+        setEditedText(firstVariant.text);
+        setEditedMarkdown(firstVariant.textMarkdown);
+        
+        // Save to database
+        if (post) {
+          await updatePost(post.id, { 
+            variants: generatedVariants,
+            chosenVariantId: firstVariant.id,
+            editedTextMarkdown: firstVariant.textMarkdown,
+            editedTextHtml: firstVariant.textHtml,
+          });
+        }
+        
+        setStep("edit");
+        toast.success("Пост сгенерирован!");
       }
-
-      setStep("variants");
-      toast.success(`Сгенерировано ${generatedVariants.length} варианта!`);
     } catch (error) {
       // Error already handled in useAI hook
     }
@@ -342,17 +355,12 @@ export default function CreatePost() {
               Идея
             </span>
             <ChevronRight className="w-4 h-4" />
-            <span className={step === "variants" ? "text-primary font-medium" : ""}>
-              Варианты
-            </span>
-            <ChevronRight className="w-4 h-4" />
             <span className={step === "edit" ? "text-primary font-medium" : ""}>
               Редактирование
             </span>
           </div>
           <h1 className="text-3xl font-bold">
             {step === "idea" && "Создать пост"}
-            {step === "variants" && "Выберите вариант"}
             {step === "edit" && "Редактирование поста"}
           </h1>
         </div>
@@ -366,39 +374,10 @@ export default function CreatePost() {
           </div>
         )}
 
-        {/* Step: Variants */}
-        {step === "variants" && (
-          <div className="space-y-6">
-            <Button variant="ghost" onClick={() => setStep("idea")}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Назад к идее
-            </Button>
-
-            <VariantsList
-              variants={variants}
-              selectedVariantId={selectedVariantId}
-              onSelectVariant={handleSelectVariant}
-            />
-
-            {selectedVariantId && (
-              <div className="flex justify-end">
-                <Button
-                  size="lg"
-                  className="bg-gradient-to-r from-primary to-purple-500"
-                  onClick={handleProceedToEdit}
-                >
-                  Продолжить редактирование
-                  <ChevronRight className="w-5 h-5 ml-2" />
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Step: Edit */}
         {step === "edit" && (
           <div className="space-y-6">
-            <Button variant="ghost" onClick={() => setStep("variants")}>
+            <Button variant="ghost" onClick={() => setStep("idea")}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Назад к вариантам
             </Button>
