@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Calendar as CalendarIcon, Clock, Send, Timer, Info } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Send, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -40,7 +40,6 @@ export function ScheduleWidget({
       "Telegram не позволяет ботам делать отложенную отправку. Пост будет отправлен автоматически нашим сервером в указанное время.",
       {
         duration: 5000,
-        icon: <Info className="w-5 h-5" />,
       }
     );
     
