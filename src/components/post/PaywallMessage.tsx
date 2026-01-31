@@ -26,6 +26,7 @@ export function PaywallMessage({ className }: PaywallMessageProps) {
           </p>
         </div>
         <button
+          type="button"
           onClick={handleContactAdmin}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity font-medium"
         >
