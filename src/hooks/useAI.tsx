@@ -2,14 +2,19 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { IdeaFormData, PostVariant } from "@/types/post";
+import { useSystemPrompts } from "@/hooks/useSystemPrompts";
 
 export function useAI() {
   const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const { getPromptById } = useSystemPrompts();
 
   const generateVariants = async (data: IdeaFormData): Promise<PostVariant[]> => {
     setIsGeneratingVariants(true);
+    
+    // Get the selected system prompt
+    const selectedPrompt = data.systemPromptId ? getPromptById(data.systemPromptId) : undefined;
     
     try {
       const { data: result, error } = await supabase.functions.invoke('generate-variants', {
@@ -19,7 +24,8 @@ export function useAI() {
           length: data.length,
           goal: data.goal,
           targetAudience: data.targetAudience,
-          template: data.template,
+          systemPrompt: selectedPrompt?.promptText,
+          template: selectedPrompt?.template,
         },
       });
 

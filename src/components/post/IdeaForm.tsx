@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Sparkles, Target, Users, MessageSquare, Ruler, FileText, Save, RotateCcw } from "lucide-react";
+import { useState } from "react";
+import { Sparkles, Target, Users, MessageSquare, Ruler, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -12,27 +12,13 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { toast } from "sonner";
-import {
   IdeaFormData,
   ToneOption,
   LengthOption,
   TONE_LABELS,
   LENGTH_LABELS,
 } from "@/types/post";
-
-const TEMPLATE_STORAGE_KEY = "post_template";
-const DEFAULT_TEMPLATE = `Заголовок
-
-— пункт 1
-— пункт 2
-— пункт 3
-
-Вывод / призыв к действию`;
+import { useSystemPrompts } from "@/hooks/useSystemPrompts";
 
 interface IdeaFormProps {
   onSubmit: (data: IdeaFormData) => void;
@@ -40,40 +26,24 @@ interface IdeaFormProps {
 }
 
 export function IdeaForm({ onSubmit, isLoading }: IdeaFormProps) {
-  const [templateOpen, setTemplateOpen] = useState(false);
-  const [template, setTemplate] = useState("");
+  const { prompts, getDefaultPrompt } = useSystemPrompts();
+  const defaultPrompt = getDefaultPrompt();
   
-  // Load saved template on mount
-  useEffect(() => {
-    const saved = localStorage.getItem(TEMPLATE_STORAGE_KEY);
-    if (saved) {
-      setTemplate(saved);
-    }
-  }, []);
-
   const [formData, setFormData] = useState<IdeaFormData>({
     idea: "",
     tone: "info",
     length: "medium",
     goal: "",
     targetAudience: "",
+    systemPromptId: defaultPrompt?.id,
   });
-
-  const handleSaveTemplate = () => {
-    localStorage.setItem(TEMPLATE_STORAGE_KEY, template);
-    toast.success("Шаблон сохранён");
-  };
-
-  const handleResetTemplate = () => {
-    setTemplate(DEFAULT_TEMPLATE);
-    localStorage.setItem(TEMPLATE_STORAGE_KEY, DEFAULT_TEMPLATE);
-    toast.success("Шаблон сброшен");
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ ...formData, template: template || undefined });
+    onSubmit(formData);
   };
+
+  const selectedPrompt = prompts.find(p => p.id === formData.systemPromptId);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -96,59 +66,42 @@ export function IdeaForm({ onSubmit, isLoading }: IdeaFormProps) {
         </p>
       </div>
 
-      {/* Template Section */}
-      <Collapsible open={templateOpen} onOpenChange={setTemplateOpen}>
-        <CollapsibleTrigger asChild>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full justify-between bg-secondary/50 border-border/50"
+      {/* System Prompt Selector */}
+      {prompts.length > 0 && (
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-muted-foreground" />
+            Системный промпт
+          </Label>
+          <Select
+            value={formData.systemPromptId}
+            onValueChange={(value) =>
+              setFormData({ ...formData, systemPromptId: value })
+            }
           >
-            <span className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-muted-foreground" />
-              Шаблон структуры поста
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {template ? "Настроен" : "Не задан"}
-            </span>
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="pt-3 space-y-3">
-          <Textarea
-            placeholder={DEFAULT_TEMPLATE}
-            value={template}
-            onChange={(e) => setTemplate(e.target.value)}
-            className="min-h-[140px] resize-none bg-secondary/50 border-border/50 focus:border-primary font-mono text-sm"
-          />
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>Форматирование:</span>
-            <code className="bg-muted px-1.5 py-0.5 rounded">**жирный**</code>
-            <code className="bg-muted px-1.5 py-0.5 rounded">_курсив_</code>
-            <code className="bg-muted px-1.5 py-0.5 rounded">[ссылка](url)</code>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={handleSaveTemplate}
-              className="flex-1"
-            >
-              <Save className="w-4 h-4 mr-1" />
-              Сохранить
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleResetTemplate}
-            >
-              <RotateCcw className="w-4 h-4 mr-1" />
-              Сбросить
-            </Button>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
+            <SelectTrigger className="bg-secondary/50">
+              <SelectValue placeholder="Выберите промпт" />
+            </SelectTrigger>
+            <SelectContent>
+              {prompts.map((prompt) => (
+                <SelectItem key={prompt.id} value={prompt.id}>
+                  <span className="flex items-center gap-2">
+                    {prompt.name}
+                    {prompt.template && (
+                      <span className="text-xs text-muted-foreground">(с шаблоном)</span>
+                    )}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedPrompt?.template && (
+            <p className="text-xs text-muted-foreground">
+              Шаблон: {selectedPrompt.template.substring(0, 50)}...
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Options Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
