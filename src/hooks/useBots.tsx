@@ -1,66 +1,47 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 
 export interface BotToken {
   id: string;
   botUsername: string | null;
   botName: string | null;
-  encryptedToken: string;
+  token: string;
   isActive: boolean;
   createdAt: Date;
 }
 
+const STORAGE_KEY = "telegram_bots";
+
 export function useBots() {
-  const { user } = useAuth();
   const [bots, setBots] = useState<BotToken[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchBots = useCallback(async () => {
-    if (!user) {
-      setBots([]);
-      setLoading(false);
-      return;
-    }
-
+  const loadFromStorage = useCallback(() => {
     try {
-      const { data, error } = await supabase
-        .from("bot_tokens")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      setBots(
-        data.map((bot) => ({
-          id: bot.id,
-          botUsername: bot.bot_username,
-          botName: bot.bot_name,
-          encryptedToken: bot.encrypted_token,
-          isActive: bot.is_active ?? true,
-          createdAt: new Date(bot.created_at!),
-        }))
-      );
-    } catch (error: any) {
-      console.error("Error fetching bots:", error);
-      toast.error("Ошибка загрузки ботов");
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setBots(parsed.map((bot: any) => ({
+          ...bot,
+          createdAt: new Date(bot.createdAt),
+        })));
+      }
+    } catch (error) {
+      console.error("Error loading bots:", error);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, []);
+
+  const saveToStorage = (newBots: BotToken[]) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newBots));
+  };
 
   useEffect(() => {
-    fetchBots();
-  }, [fetchBots]);
+    loadFromStorage();
+  }, [loadFromStorage]);
 
   const addBot = async (token: string): Promise<BotToken | null> => {
-    if (!user) {
-      toast.error("Необходимо авторизоваться");
-      return null;
-    }
-
     try {
       // Validate token by calling Telegram API
       const response = await fetch(`https://api.telegram.org/bot${token}/getMe`);
@@ -72,31 +53,19 @@ export function useBots() {
 
       const botInfo = data.result;
       
-      // Store token (in production, encrypt before storing)
-      const { data: insertedBot, error } = await supabase
-        .from("bot_tokens")
-        .insert({
-          user_id: user.id,
-          encrypted_token: token, // In production: encrypt this
-          bot_name: botInfo.first_name,
-          bot_username: `@${botInfo.username}`,
-          is_active: true,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
       const newBot: BotToken = {
-        id: insertedBot.id,
-        botUsername: insertedBot.bot_username,
-        botName: insertedBot.bot_name,
-        encryptedToken: insertedBot.encrypted_token,
-        isActive: insertedBot.is_active ?? true,
-        createdAt: new Date(insertedBot.created_at!),
+        id: crypto.randomUUID(),
+        botUsername: `@${botInfo.username}`,
+        botName: botInfo.first_name,
+        token: token,
+        isActive: true,
+        createdAt: new Date(),
       };
 
-      setBots((prev) => [newBot, ...prev]);
+      const newBots = [newBot, ...bots];
+      setBots(newBots);
+      saveToStorage(newBots);
+      
       toast.success(`Бот ${botInfo.first_name} добавлен!`);
       return newBot;
     } catch (error: any) {
@@ -107,46 +76,23 @@ export function useBots() {
   };
 
   const removeBot = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from("bot_tokens")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-
-      setBots((prev) => prev.filter((b) => b.id !== id));
-      toast.success("Бот удалён");
-    } catch (error: any) {
-      console.error("Error removing bot:", error);
-      toast.error("Ошибка удаления бота");
-    }
+    const newBots = bots.filter((b) => b.id !== id);
+    setBots(newBots);
+    saveToStorage(newBots);
+    toast.success("Бот удалён");
   };
 
   const toggleBot = async (id: string) => {
-    const bot = bots.find((b) => b.id === id);
-    if (!bot) return;
-
-    try {
-      const { error } = await supabase
-        .from("bot_tokens")
-        .update({ is_active: !bot.isActive })
-        .eq("id", id);
-
-      if (error) throw error;
-
-      setBots((prev) =>
-        prev.map((b) => (b.id === id ? { ...b, isActive: !b.isActive } : b))
-      );
-    } catch (error: any) {
-      console.error("Error toggling bot:", error);
-      toast.error("Ошибка обновления бота");
-    }
+    const newBots = bots.map((b) =>
+      b.id === id ? { ...b, isActive: !b.isActive } : b
+    );
+    setBots(newBots);
+    saveToStorage(newBots);
   };
 
   const getBotToken = (id: string): string | null => {
     const bot = bots.find((b) => b.id === id);
-    return bot?.encryptedToken || null;
+    return bot?.token || null;
   };
 
   return {
@@ -156,6 +102,6 @@ export function useBots() {
     removeBot,
     toggleBot,
     getBotToken,
-    refetch: fetchBots,
+    refetch: loadFromStorage,
   };
 }
