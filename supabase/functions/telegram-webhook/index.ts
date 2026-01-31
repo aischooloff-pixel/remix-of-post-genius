@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,51 +24,32 @@ serve(async (req) => {
   }
 
   try {
-    const url = new URL(req.url);
-    const pathParts = url.pathname.split('/');
-    const botTokenId = pathParts[pathParts.length - 1];
-
-    if (!botTokenId || botTokenId === 'telegram-webhook') {
-      return new Response(JSON.stringify({ error: "Bot token ID required in path" }), {
-        status: 400,
+    const BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
+    
+    if (!BOT_TOKEN) {
+      console.error("TELEGRAM_BOT_TOKEN not configured");
+      return new Response(JSON.stringify({ error: "Bot token not configured" }), {
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    // Get bot token from database
-    const { data: botData, error: botError } = await supabase
-      .from("bot_tokens")
-      .select("encrypted_token")
-      .eq("id", botTokenId)
-      .single();
-
-    if (botError || !botData) {
-      console.error("Bot not found:", botError);
-      return new Response(JSON.stringify({ error: "Bot not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const botToken = botData.encrypted_token;
     const update = await req.json();
-
     console.log("Received update:", JSON.stringify(update));
 
     // Handle /start command
     if (update.message?.text === "/start") {
       const chatId = update.message.chat.id;
+      const userName = update.message.from?.first_name || "друг";
 
-      const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      const personalizedMessage = `👋 Привет, *${userName.replace(/[_*[\]()~`>#+=|{}.!-]/g, '\\$&')}*\\!\n\n${WELCOME_MESSAGE}`;
+
+      const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chat_id: chatId,
-          text: WELCOME_MESSAGE,
+          text: personalizedMessage,
           parse_mode: "MarkdownV2",
           reply_markup: {
             inline_keyboard: [
