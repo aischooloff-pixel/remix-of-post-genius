@@ -77,7 +77,8 @@ serve(async (req) => {
       );
     }
 
-    console.log('Publishing to Telegram:', { chatId, textLength: text.length, hasMedia: !!media?.length, hasButtons: !!buttons?.length });
+    console.log('Publishing to Telegram:', { chatId, textLength: text.length, hasMedia: !!media?.length, hasButtons: !!buttons?.length, parseMode });
+    console.log('Text being sent:', text.substring(0, 200));
 
     const replyMarkup = buildInlineKeyboard(buttons);
     
