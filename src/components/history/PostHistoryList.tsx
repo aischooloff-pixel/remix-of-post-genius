@@ -51,43 +51,7 @@ const STATUS_CONFIG: Record<PostStatus, { label: string; color: string; icon: Re
 };
 
 export function PostHistoryList({ statusFilter, searchQuery }: PostHistoryListProps) {
-  const [posts, setPosts] = useState<HistoryPost[]>([
-    {
-      id: "1",
-      ideaText: "Рассказать о новых функциях приложения",
-      editedText: "🚀 Представляем новые функции нашего приложения!\n\nМы добавили:\n• Автоматическую генерацию постов\n• Умное планирование публикаций\n• Интеграцию с AI\n\nПопробуйте прямо сейчас!",
-      status: "sent",
-      channelTitle: "Мой канал",
-      sentAt: new Date(Date.now() - 86400000),
-      createdAt: new Date(Date.now() - 86400000 * 2),
-    },
-    {
-      id: "2",
-      ideaText: "Анонс вебинара по маркетингу",
-      editedText: "📚 Приглашаем на бесплатный вебинар!\n\nТема: Эффективный маркетинг в 2024\n\n📅 15 февраля, 19:00 МСК\n\nРегистрация по ссылке ниже 👇",
-      status: "scheduled",
-      channelTitle: "Мой канал",
-      scheduleDatetime: new Date(Date.now() + 86400000 * 3),
-      createdAt: new Date(Date.now() - 3600000),
-    },
-    {
-      id: "3",
-      ideaText: "Советы по продуктивности",
-      editedText: "💡 5 простых советов для продуктивного дня...",
-      status: "failed",
-      channelTitle: "Мой канал",
-      createdAt: new Date(Date.now() - 7200000),
-      errorMessage: "Bot is not a member of the channel",
-    },
-    {
-      id: "4",
-      ideaText: "Черновик поста о новостях",
-      editedText: "📰 Главные новости недели...",
-      status: "draft",
-      channelTitle: "Мой канал",
-      createdAt: new Date(Date.now() - 1800000),
-    },
-  ]);
+  const [posts, setPosts] = useState<HistoryPost[]>([]);
 
   const filteredPosts = posts.filter((post) => {
     const matchesStatus = statusFilter === "all" || post.status === statusFilter;
