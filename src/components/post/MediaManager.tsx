@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PostMedia } from "@/types/post";
 import { toast } from "sonner";
 import { useAI } from "@/hooks/useAI";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MediaManagerProps {
   media: PostMedia[];
@@ -60,36 +61,74 @@ export function MediaManager({ media, onChange }: MediaManagerProps) {
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [count, setCount] = useState(3);
   const [generatedImages, setGeneratedImages] = useState<Array<{ id: string; url: string }>>([]);
+  const [isUploading, setIsUploading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { generateImage, isGeneratingImage } = useAI();
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const uploadToStorage = async (file: File): Promise<string | null> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+    const filePath = `uploads/${fileName}`;
+
+    const { data, error } = await supabase.storage
+      .from('post-media')
+      .upload(filePath, file);
+
+    if (error) {
+      console.error('Upload error:', error);
+      throw error;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from('post-media')
+      .getPublicUrl(filePath);
+
+    return urlData.publicUrl;
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
-    Array.from(files).forEach((file) => {
-      const url = URL.createObjectURL(file);
-      const type = file.type.startsWith("video")
-        ? "video"
-        : file.type.startsWith("image")
-        ? "photo"
-        : "document";
+    setIsUploading(true);
+    const newMedia: PostMedia[] = [];
 
-      const newMedia: PostMedia = {
-        id: `media_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        type,
-        url,
-        meta: {
-          name: file.name,
-          size: file.size,
-        },
-      };
+    try {
+      for (const file of Array.from(files)) {
+        const publicUrl = await uploadToStorage(file);
+        
+        if (publicUrl) {
+          const type = file.type.startsWith("video")
+            ? "video"
+            : file.type.startsWith("image")
+            ? "photo"
+            : "document";
 
-      onChange([...media, newMedia]);
-    });
+          newMedia.push({
+            id: `media_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            type,
+            url: publicUrl,
+            meta: {
+              name: file.name,
+              size: file.size,
+            },
+          });
+        }
+      }
 
-    toast.success(`Загружено ${files.length} файл(ов)`);
+      onChange([...media, ...newMedia]);
+      toast.success(`Загружено ${newMedia.length} файл(ов)`);
+    } catch (error: any) {
+      console.error('Upload failed:', error);
+      toast.error("Ошибка загрузки файлов");
+    } finally {
+      setIsUploading(false);
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const handleGenerate = async () => {
@@ -152,15 +191,22 @@ export function MediaManager({ media, onChange }: MediaManagerProps) {
             className={cn(
               "border-2 border-dashed border-border rounded-xl p-8",
               "hover:border-primary/50 transition-colors cursor-pointer",
-              "flex flex-col items-center justify-center gap-3"
+              "flex flex-col items-center justify-center gap-3",
+              isUploading && "opacity-50 pointer-events-none"
             )}
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => !isUploading && fileInputRef.current?.click()}
           >
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <Upload className="w-6 h-6 text-primary" />
+              {isUploading ? (
+                <Loader2 className="w-6 h-6 text-primary animate-spin" />
+              ) : (
+                <Upload className="w-6 h-6 text-primary" />
+              )}
             </div>
             <div className="text-center">
-              <p className="font-medium">Нажмите или перетащите файлы</p>
+              <p className="font-medium">
+                {isUploading ? "Загрузка..." : "Нажмите или перетащите файлы"}
+              </p>
               <p className="text-sm text-muted-foreground">
                 Фото, видео, GIF, документы
               </p>
@@ -172,6 +218,7 @@ export function MediaManager({ media, onChange }: MediaManagerProps) {
               accept="image/*,video/*,.gif,.webm"
               className="hidden"
               onChange={handleFileUpload}
+              disabled={isUploading}
             />
           </div>
         </TabsContent>
@@ -261,7 +308,7 @@ export function MediaManager({ media, onChange }: MediaManagerProps) {
                 Сгенерированные изображения
               </Label>
               <div className="grid grid-cols-3 gap-2">
-                {generatedImages.map((image, i) => (
+                {generatedImages.map((image) => (
                   <div key={image.id} className="relative group aspect-square rounded-lg overflow-hidden">
                     <img src={image.url} alt="" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
