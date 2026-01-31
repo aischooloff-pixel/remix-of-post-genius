@@ -19,6 +19,7 @@ export function useAI() {
           length: data.length,
           goal: data.goal,
           targetAudience: data.targetAudience,
+          template: data.template,
         },
       });
 
