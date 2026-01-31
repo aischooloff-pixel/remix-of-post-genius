@@ -91,81 +91,94 @@ export function ButtonsBuilder({ buttons, onChange }: ButtonsBuilderProps) {
                   {rowButtons.map((btn) => (
                     <div
                       key={btn.id}
-                      className="flex items-center gap-2 p-3 bg-secondary/50 rounded-lg"
+                      className="flex flex-col gap-2 p-3 bg-secondary/50 rounded-lg sm:flex-row sm:items-center"
                     >
-                      <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
-                      
-                      <Input
-                        value={btn.text}
-                        onChange={(e) =>
-                          updateButton(btn.id, { text: e.target.value })
-                        }
-                        placeholder="Текст кнопки"
-                        className="flex-1 h-8"
-                      />
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab shrink-0" />
+                        
+                        <Input
+                          value={btn.text}
+                          onChange={(e) =>
+                            updateButton(btn.id, { text: e.target.value })
+                          }
+                          placeholder="Текст кнопки"
+                          className="flex-1 h-8"
+                        />
 
-                      <Select
-                        value={btn.type}
-                        onValueChange={(value: "url" | "callback") =>
-                          updateButton(btn.id, { type: value })
-                        }
-                      >
-                        <SelectTrigger className="w-28 h-8">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="url">
-                            <div className="flex items-center gap-1">
-                              <LinkIcon className="w-3 h-3" />
-                              URL
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="callback">
-                            <div className="flex items-center gap-1">
-                              <MousePointer className="w-3 h-3" />
-                              Callback
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive shrink-0 sm:hidden"
+                          onClick={() => removeButton(btn.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
 
-                      <Input
-                        value={btn.payload}
-                        onChange={(e) =>
-                          updateButton(btn.id, { payload: e.target.value })
-                        }
-                        placeholder={btn.type === "url" ? "https://..." : "callback_data"}
-                        className="flex-1 h-8"
-                      />
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <Select
+                          value={btn.type}
+                          onValueChange={(value: "url" | "callback") =>
+                            updateButton(btn.id, { type: value })
+                          }
+                        >
+                          <SelectTrigger className="w-24 h-8 shrink-0">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="url">
+                              <div className="flex items-center gap-1">
+                                <LinkIcon className="w-3 h-3" />
+                                URL
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="callback">
+                              <div className="flex items-center gap-1">
+                                <MousePointer className="w-3 h-3" />
+                                Callback
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
 
-                      <Select
-                        value={String(btn.row)}
-                        onValueChange={(value) =>
-                          updateButton(btn.id, { row: Number(value) })
-                        }
-                      >
-                        <SelectTrigger className="w-20 h-8">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[...new Set(buttons.map((b) => b.row)), Math.max(...buttons.map((b) => b.row)) + 1]
-                            .sort((a, b) => a - b)
-                            .map((r) => (
-                              <SelectItem key={r} value={String(r)}>
-                                Ряд {r + 1}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
+                        <Input
+                          value={btn.payload}
+                          onChange={(e) =>
+                            updateButton(btn.id, { payload: e.target.value })
+                          }
+                          placeholder={btn.type === "url" ? "https://..." : "callback_data"}
+                          className="flex-1 h-8 min-w-0"
+                        />
 
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        onClick={() => removeButton(btn.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                        <Select
+                          value={String(btn.row)}
+                          onValueChange={(value) =>
+                            updateButton(btn.id, { row: Number(value) })
+                          }
+                        >
+                          <SelectTrigger className="w-20 h-8 shrink-0">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[...new Set(buttons.map((b) => b.row)), Math.max(...buttons.map((b) => b.row)) + 1]
+                              .sort((a, b) => a - b)
+                              .map((r) => (
+                                <SelectItem key={r} value={String(r)}>
+                                  Ряд {r + 1}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive shrink-0 hidden sm:flex"
+                          onClick={() => removeButton(btn.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
