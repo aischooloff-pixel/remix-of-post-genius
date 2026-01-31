@@ -27,7 +27,9 @@ interface AIProvider {
   provider_type: string;
 }
 
-async function getDefaultProvider(supabase: any): Promise<AIProvider | null> {
+async function getDefaultProvider(supabaseUrl: string, supabaseKey: string): Promise<AIProvider | null> {
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  
   const { data, error } = await supabase
     .from("ai_providers")
     .select("api_key, endpoint_url, model_id, provider_type")
@@ -36,7 +38,6 @@ async function getDefaultProvider(supabase: any): Promise<AIProvider | null> {
     .single();
 
   if (error || !data) {
-    // Try to get any active provider
     const { data: anyProvider } = await supabase
       .from("ai_providers")
       .select("api_key, endpoint_url, model_id, provider_type")
@@ -58,18 +59,11 @@ serve(async (req) => {
   try {
     const { idea, tone, length, goal, targetAudience, systemPrompt, template } = await req.json();
 
-    // Get user's auth token
-    const authHeader = req.headers.get("Authorization");
-    
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader || "" } },
-    });
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Get user's AI provider
-    const provider = await getDefaultProvider(supabase);
+    // Get AI provider (no auth required)
+    const provider = await getDefaultProvider(supabaseUrl, supabaseKey);
     
     let apiKey: string;
     let endpoint: string;
