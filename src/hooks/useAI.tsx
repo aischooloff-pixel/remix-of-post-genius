@@ -26,6 +26,7 @@ export function useAI() {
           targetAudience: data.targetAudience,
           systemPrompt: selectedPrompt?.promptText,
           template: selectedPrompt?.template,
+          variantsCount: data.variantsCount || 3,
         },
       });
 

@@ -70,6 +70,7 @@ export default function CreatePost() {
           goal: post.goal || "",
           targetAudience: post.targetAudience || "",
           systemPromptId: post.systemPromptId || undefined,
+          variantsCount: 1,
         });
         
         if (post.variants && post.variants.length > 0) {

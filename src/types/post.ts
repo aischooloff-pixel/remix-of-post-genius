@@ -58,6 +58,7 @@ export interface IdeaFormData {
   goal: string;
   targetAudience: string;
   systemPromptId?: string;
+  variantsCount: number;
 }
 
 export type ToneOption = "drive" | "info" | "promo" | "friendly" | "formal";

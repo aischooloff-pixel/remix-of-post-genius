@@ -57,7 +57,7 @@ serve(async (req) => {
   }
 
   try {
-    const { idea, tone, length, goal, targetAudience, systemPrompt, template } = await req.json();
+    const { idea, tone, length, goal, targetAudience, systemPrompt, template, variantsCount = 3 } = await req.json();
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -119,25 +119,48 @@ ${template}
 `
       : '';
 
-    const defaultSystemPrompt = `Ты — профессиональный автор постов для Telegram. Задача: по идее/бриффу сгенерировать 3 варианта поста.
+    const count = Math.min(Math.max(variantsCount, 1), 3);
+    
+    const getVariantStyles = (n: number, hasTemplate: boolean) => {
+      const styles = [
+        { id: "v1", style: "hook", name: hasTemplate ? "Вариант A" : "Крючок + совет" },
+        { id: "v2", style: "guide", name: hasTemplate ? "Вариант B" : "Развёрнутый гайд" },
+        { id: "v3", style: "promo", name: hasTemplate ? "Вариант C" : "Продающий" },
+      ];
+      return styles.slice(0, n);
+    };
+    
+    const variantStyles = getVariantStyles(count, !!template);
+    
+    const stylesDescription = count === 1 
+      ? "Создай один качественный вариант поста."
+      : count === 2
+        ? `Стили вариантов:
+1) Короткий крючок (hook) + практический совет, 1–3 предложения.
+2) Развёрнутый гайд — 4–8 предложений, структурированные абзацы.`
+        : `Стили вариантов:
+1) Короткий крючок (hook) + практический совет, 1–3 предложения.
+2) Развёрнутый гайд — 4–8 предложений, структурированные абзацы.
+3) Продающий вариант с мягким CTA в конце.`;
+
+    const jsonExample = variantStyles.map(v => 
+      `{"id": "${v.id}", "style": "${v.style}", "styleName": "${v.name}", "text": "текст без форматирования", "textMarkdown": "текст с MarkdownV2: *жирный* _курсив_", "textHtml": "текст с HTML: <b>жирный</b> <i>курсив</i>"}`
+    ).join(",\n  ");
+
+    const defaultSystemPrompt = `Ты — профессиональный автор постов для Telegram. Задача: по идее/бриффу сгенерировать ${count} ${count === 1 ? 'вариант' : 'варианта'} поста.
 
 Тон: ${TONE_LABELS[tone] || tone}
 Длина: ${LENGTH_LABELS[length] || length}
 ${goal ? `Цель: ${goal}` : ''}
 ${targetAudience ? `Целевая аудитория: ${targetAudience}` : ''}${templateInstruction}
 
-${!template ? `Стили вариантов:
-1) Короткий крючок (hook) + практический совет, 1–3 предложения.
-2) Развёрнутый гайд — 4–8 предложений, структурированные абзацы.
-3) Продающий вариант с мягким CTA в конце.` : 'Все 3 варианта должны следовать указанной структуре, но с разными формулировками и акцентами.'}
+${!template ? stylesDescription : `${count === 1 ? 'Вариант должен следовать' : 'Все варианты должны следовать'} указанной структуре${count > 1 ? ', но с разными формулировками и акцентами' : ''}.`}
 
 Ограничения: максимум 3 эмодзи; не придумывай фактов.
 
 ВАЖНО: Верни ТОЛЬКО валидный JSON массив без дополнительного текста. Формат:
 [
-  {"id": "v1", "style": "hook", "styleName": "${template ? 'Вариант A' : 'Крючок + совет'}", "text": "текст без форматирования", "textMarkdown": "текст с MarkdownV2: *жирный* _курсив_", "textHtml": "текст с HTML: <b>жирный</b> <i>курсив</i>"},
-  {"id": "v2", "style": "guide", "styleName": "${template ? 'Вариант B' : 'Развёрнутый гайд'}", "text": "...", "textMarkdown": "...", "textHtml": "..."},
-  {"id": "v3", "style": "promo", "styleName": "${template ? 'Вариант C' : 'Продающий'}", "text": "...", "textMarkdown": "...", "textHtml": "..."}
+  ${jsonExample}
 ]`;
 
     const response = await fetch(endpoint, {
