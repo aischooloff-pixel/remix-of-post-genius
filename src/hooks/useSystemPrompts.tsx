@@ -5,6 +5,7 @@ export interface SystemPrompt {
   id: string;
   name: string;
   promptText: string;
+  template: string;
   isDefault: boolean;
   isPublic: boolean;
   createdAt: Date;
@@ -24,10 +25,19 @@ const DEFAULT_PROMPT_TEXT = `Ты — профессиональный авто�
 
 Ограничения: максимум 3 эмодзи; результат должен быть совместим с MarkdownV2. Не придумывай фактов.`;
 
+const DEFAULT_TEMPLATE = `**Заголовок**
+
+— пункт 1
+— пункт 2
+— пункт 3
+
+_Вывод / призыв к действию_`;
+
 const createDefaultPrompt = (): SystemPrompt => ({
   id: crypto.randomUUID(),
   name: "Стандартный промпт",
   promptText: DEFAULT_PROMPT_TEXT,
+  template: DEFAULT_TEMPLATE,
   isDefault: true,
   isPublic: false,
   createdAt: new Date(),
@@ -44,6 +54,7 @@ export function useSystemPrompts() {
         const parsed = JSON.parse(stored);
         setPrompts(parsed.map((prompt: any) => ({
           ...prompt,
+          template: prompt.template || "",
           createdAt: new Date(prompt.createdAt),
         })));
       } else {
@@ -69,11 +80,12 @@ export function useSystemPrompts() {
     loadFromStorage();
   }, [loadFromStorage]);
 
-  const addPrompt = async (name: string, promptText: string): Promise<SystemPrompt | null> => {
+  const addPrompt = async (name: string, promptText: string, template: string = ""): Promise<SystemPrompt | null> => {
     const newPrompt: SystemPrompt = {
       id: crypto.randomUUID(),
       name,
       promptText,
+      template,
       isDefault: false,
       isPublic: false,
       createdAt: new Date(),
@@ -89,7 +101,7 @@ export function useSystemPrompts() {
 
   const updatePrompt = async (
     id: string,
-    updates: { name?: string; promptText?: string }
+    updates: { name?: string; promptText?: string; template?: string }
   ): Promise<boolean> => {
     const newPrompts = prompts.map((p) =>
       p.id === id ? { ...p, ...updates } : p
@@ -129,11 +141,15 @@ export function useSystemPrompts() {
   };
 
   const duplicatePrompt = async (prompt: SystemPrompt): Promise<SystemPrompt | null> => {
-    return addPrompt(`${prompt.name} (копия)`, prompt.promptText);
+    return addPrompt(`${prompt.name} (копия)`, prompt.promptText, prompt.template);
   };
 
   const getDefaultPrompt = (): SystemPrompt | undefined => {
     return prompts.find((p) => p.isDefault) || prompts[0];
+  };
+
+  const getPromptById = (id: string): SystemPrompt | undefined => {
+    return prompts.find((p) => p.id === id);
   };
 
   return {
@@ -145,6 +161,7 @@ export function useSystemPrompts() {
     setDefaultPrompt,
     duplicatePrompt,
     getDefaultPrompt,
+    getPromptById,
     refetch: loadFromStorage,
   };
 }
