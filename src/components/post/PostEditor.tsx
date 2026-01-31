@@ -21,6 +21,11 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { toast } from "sonner";
 
 interface PostEditorProps {
@@ -71,6 +76,9 @@ export function PostEditor({
   const [aiInstruction, setAIInstruction] = useState("");
   const [selectionStart, setSelectionStart] = useState(0);
   const [selectionEnd, setSelectionEnd] = useState(0);
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkText, setLinkText] = useState("");
+  const [isLinkPopoverOpen, setIsLinkPopoverOpen] = useState(false);
 
   // Sync with external text changes (e.g., from AI editing)
   useEffect(() => {
@@ -130,6 +138,32 @@ export function PostEditor({
     toast.success("Текст скопирован");
   };
 
+  const handleOpenLinkPopover = () => {
+    // Get selected text as link text
+    const selectedText = text.slice(selectionStart, selectionEnd);
+    setLinkText(selectedText || "");
+    setLinkUrl("");
+    setIsLinkPopoverOpen(true);
+  };
+
+  const handleInsertLink = () => {
+    if (!linkUrl.trim()) {
+      toast.error("Введите URL ссылки");
+      return;
+    }
+
+    const displayText = linkText.trim() || linkUrl;
+    const before = text.slice(0, selectionStart);
+    const after = text.slice(selectionEnd);
+    const linkMarkdown = `[${displayText}](${linkUrl})`;
+    
+    handleTextChange(`${before}${linkMarkdown}${after}`);
+    setIsLinkPopoverOpen(false);
+    setLinkUrl("");
+    setLinkText("");
+    toast.success("Ссылка добавлена");
+  };
+
   const handleAISubmit = () => {
     if (aiInstruction.trim() && onAIEdit) {
       onAIEdit(aiInstruction);
@@ -184,11 +218,59 @@ export function PostEditor({
             onClick={() => handleFormat("quote")}
           />
           <div className="w-px h-5 bg-border mx-1" />
-          <ToolbarButton
-            icon={LinkIcon}
-            tooltip="Вставить ссылку"
-            onClick={() => wrapSelection("[", "](url)")}
-          />
+          <Popover open={isLinkPopoverOpen} onOpenChange={setIsLinkPopoverOpen}>
+            <PopoverTrigger asChild>
+              <div>
+                <ToolbarButton
+                  icon={LinkIcon}
+                  tooltip="Вставить ссылку"
+                  onClick={handleOpenLinkPopover}
+                />
+              </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-80" align="start">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm">Вставить ссылку</h4>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="linkText" className="text-xs">Текст ссылки</Label>
+                  <Input
+                    id="linkText"
+                    value={linkText}
+                    onChange={(e) => setLinkText(e.target.value)}
+                    placeholder="Текст для отображения"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="linkUrl" className="text-xs">URL</Label>
+                  <Input
+                    id="linkUrl"
+                    value={linkUrl}
+                    onChange={(e) => setLinkUrl(e.target.value)}
+                    placeholder="https://example.com"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleInsertLink();
+                      }
+                    }}
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsLinkPopoverOpen(false)}
+                  >
+                    Отмена
+                  </Button>
+                  <Button size="sm" onClick={handleInsertLink}>
+                    Вставить
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
           <ToolbarButton
             icon={Smile}
             tooltip="Эмодзи"
