@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Calendar as CalendarIcon, Clock, Globe, Send, Timer } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Send, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -12,28 +12,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface ScheduleWidgetProps {
   onPublishNow: () => void;
-  onSchedule: (datetime: Date, timezone: string) => void;
+  onSchedule: (datetime: Date) => void;
   isPublishing?: boolean;
 }
-
-const TIMEZONES = [
-  { value: "Europe/Moscow", label: "Москва (UTC+3)" },
-  { value: "Europe/Kiev", label: "Киев (UTC+2)" },
-  { value: "Europe/Minsk", label: "Минск (UTC+3)" },
-  { value: "Asia/Almaty", label: "Алматы (UTC+6)" },
-  { value: "Asia/Tashkent", label: "Ташкент (UTC+5)" },
-  { value: "Europe/Stockholm", label: "Стокгольм (UTC+1)" },
-];
 
 export function ScheduleWidget({
   onPublishNow,
@@ -42,7 +26,6 @@ export function ScheduleWidget({
 }: ScheduleWidgetProps) {
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [time, setTime] = useState("12:00");
-  const [timezone, setTimezone] = useState("Europe/Moscow");
 
   const handleSchedule = () => {
     if (!date) return;
@@ -51,7 +34,7 @@ export function ScheduleWidget({
     const scheduledDate = new Date(date);
     scheduledDate.setHours(hours, minutes, 0, 0);
     
-    onSchedule(scheduledDate, timezone);
+    onSchedule(scheduledDate);
   };
 
   return (
@@ -137,25 +120,6 @@ export function ScheduleWidget({
           </div>
         </div>
 
-        {/* Timezone */}
-        <div className="space-y-2">
-          <Label className="flex items-center gap-2 text-sm">
-            <Globe className="w-4 h-4 text-muted-foreground" />
-            Часовой пояс
-          </Label>
-          <Select value={timezone} onValueChange={setTimezone}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {TIMEZONES.map((tz) => (
-                <SelectItem key={tz.value} value={tz.value}>
-                  {tz.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
 
         <Button
           variant="outline"
