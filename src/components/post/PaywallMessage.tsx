@@ -9,8 +9,15 @@ interface PaywallMessageProps {
 export function PaywallMessage({ className }: PaywallMessageProps) {
   const { openTelegramLink } = useTelegram();
 
-  const handleContactAdmin = () => {
-    openTelegramLink(`https://t.me/${ADMIN_CONTACT.replace("@", "")}`);
+  const handleContactAdmin = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = `https://t.me/${ADMIN_CONTACT.replace("@", "")}`;
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.openTelegramLink(url);
+    } else {
+      window.open(url, "_blank");
+    }
   };
 
   return (
