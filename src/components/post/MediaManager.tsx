@@ -59,7 +59,7 @@ export function MediaManager({ media, onChange }: MediaManagerProps) {
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState("realistic");
   const [aspectRatio, setAspectRatio] = useState("1:1");
-  const [count, setCount] = useState(3);
+  const [count, setCount] = useState(1);
   const [generatedImages, setGeneratedImages] = useState<Array<{ id: string; url: string }>>([]);
   const [isUploading, setIsUploading] = useState(false);
   
