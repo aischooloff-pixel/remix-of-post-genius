@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Bold,
   Italic,
@@ -71,6 +71,15 @@ export function PostEditor({
   const [aiInstruction, setAIInstruction] = useState("");
   const [selectionStart, setSelectionStart] = useState(0);
   const [selectionEnd, setSelectionEnd] = useState(0);
+
+  // Sync with external text changes (e.g., from AI editing)
+  useEffect(() => {
+    setText(initialText);
+  }, [initialText]);
+
+  useEffect(() => {
+    setMarkdownText(initialMarkdown || initialText);
+  }, [initialMarkdown, initialText]);
 
   const handleTextChange = (newText: string) => {
     setText(newText);
