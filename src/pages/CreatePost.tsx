@@ -16,66 +16,31 @@ import {
 } from "@/types/post";
 import { toast } from "sonner";
 import { ArrowLeft, ChevronRight } from "lucide-react";
+import { useAI } from "@/hooks/useAI";
 
 type Step = "idea" | "variants" | "edit";
 
 export default function CreatePost() {
   const [step, setStep] = useState<Step>("idea");
-  const [isGenerating, setIsGenerating] = useState(false);
   const [variants, setVariants] = useState<PostVariant[]>([]);
   const [selectedVariantId, setSelectedVariantId] = useState<string>();
   const [editedText, setEditedText] = useState("");
   const [editedMarkdown, setEditedMarkdown] = useState("");
   const [media, setMedia] = useState<PostMedia[]>([]);
   const [buttons, setButtons] = useState<InlineButton[]>([]);
+  
+  const { generateVariants, editByAI, isGeneratingVariants, isEditing } = useAI();
 
   const handleGenerateVariants = useCallback(async (data: IdeaFormData) => {
-    setIsGenerating(true);
-    
-    // Simulate AI generation
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    
-    const mockVariants: PostVariant[] = [
-      {
-        id: "v1",
-        label: "A",
-        style: "hook",
-        styleName: "Крючок + совет",
-        text: `🎯 ${data.idea.slice(0, 50)}...\n\nЭто ключевой момент, который изменит ваш подход. Попробуйте применить это сегодня!`,
-        textMarkdown: `🎯 **${data.idea.slice(0, 50)}...**\n\nЭто ключевой момент, который изменит ваш подход\\. Попробуйте применить это сегодня\\!`,
-        textHtml: `🎯 <b>${data.idea.slice(0, 50)}...</b>\n\nЭто ключевой момент, который изменит ваш подход. Попробуйте применить это сегодня!`,
-        tokensUsed: 45,
-        createdAt: new Date(),
-      },
-      {
-        id: "v2",
-        label: "B",
-        style: "guide",
-        styleName: "Развёрнутый гайд",
-        text: `📚 Полное руководство: ${data.idea.slice(0, 30)}...\n\nШаг 1: Определите цель\nШаг 2: Подготовьте план\nШаг 3: Начните с малого\nШаг 4: Анализируйте результаты\n\nГлавное — действовать последовательно и не сдаваться на полпути.`,
-        textMarkdown: `📚 **Полное руководство:** _${data.idea.slice(0, 30)}\\.\\.\\._\n\n**Шаг 1:** Определите цель\n**Шаг 2:** Подготовьте план\n**Шаг 3:** Начните с малого\n**Шаг 4:** Анализируйте результаты\n\nГлавное — действовать последовательно и не сдаваться на полпути\\.`,
-        textHtml: `📚 <b>Полное руководство:</b> <i>${data.idea.slice(0, 30)}...</i>\n\n<b>Шаг 1:</b> Определите цель\n<b>Шаг 2:</b> Подготовьте план\n<b>Шаг 3:</b> Начните с малого\n<b>Шаг 4:</b> Анализируйте результаты\n\nГлавное — действовать последовательно и не сдаваться на полпути.`,
-        tokensUsed: 89,
-        createdAt: new Date(),
-      },
-      {
-        id: "v3",
-        label: "C",
-        style: "promo",
-        styleName: "Продающий",
-        text: `✨ ${data.idea.slice(0, 40)}...\n\nМы создали решение, которое уже помогло тысячам людей достичь результатов.\n\n→ Экономия времени\n→ Простота использования\n→ Гарантированный результат\n\n🔥 Начните прямо сейчас — подписывайтесь!`,
-        textMarkdown: `✨ **${data.idea.slice(0, 40)}\\.\\.\\.**\n\nМы создали решение, которое уже помогло тысячам людей достичь результатов\\.\n\n→ Экономия времени\n→ Простота использования\n→ Гарантированный результат\n\n🔥 Начните прямо сейчас — подписывайтесь\\!`,
-        textHtml: `✨ <b>${data.idea.slice(0, 40)}...</b>\n\nМы создали решение, которое уже помогло тысячам людей достичь результатов.\n\n→ Экономия времени\n→ Простота использования\n→ Гарантированный результат\n\n🔥 Начните прямо сейчас — подписывайтесь!`,
-        tokensUsed: 78,
-        createdAt: new Date(),
-      },
-    ];
-
-    setVariants(mockVariants);
-    setIsGenerating(false);
-    setStep("variants");
-    toast.success("Сгенерировано 3 варианта!");
-  }, []);
+    try {
+      const generatedVariants = await generateVariants(data);
+      setVariants(generatedVariants);
+      setStep("variants");
+      toast.success(`Сгенерировано ${generatedVariants.length} варианта!`);
+    } catch (error) {
+      // Error already handled in useAI hook
+    }
+  }, [generateVariants]);
 
   const handleSelectVariant = (variantId: string) => {
     setSelectedVariantId(variantId);
@@ -104,10 +69,14 @@ export default function CreatePost() {
 
   const handleAIEdit = async (instruction: string) => {
     toast.info(`Применяю: ${instruction}`);
-    // Simulate AI edit
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setEditedText((prev) => prev + "\n\n✏️ [Отредактировано AI]");
-    toast.success("Текст обновлён!");
+    try {
+      const result = await editByAI(editedText, instruction);
+      setEditedText(result.text);
+      setEditedMarkdown(result.textMarkdown);
+      toast.success("Текст обновлён!");
+    } catch (error) {
+      // Error already handled in useAI hook
+    }
   };
 
   return (
@@ -139,7 +108,7 @@ export default function CreatePost() {
         {step === "idea" && (
           <div className="max-w-2xl">
             <div className="glass-card rounded-2xl p-6">
-              <IdeaForm onSubmit={handleGenerateVariants} isLoading={isGenerating} />
+              <IdeaForm onSubmit={handleGenerateVariants} isLoading={isGeneratingVariants} />
             </div>
           </div>
         )}

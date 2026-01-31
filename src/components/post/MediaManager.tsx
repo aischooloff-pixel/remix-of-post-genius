@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -25,6 +24,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PostMedia } from "@/types/post";
 import { toast } from "sonner";
+import { useAI } from "@/hooks/useAI";
 
 interface MediaManagerProps {
   media: PostMedia[];
@@ -53,16 +53,16 @@ const STYLES = [
   { value: "illustration", label: "Иллюстрация" },
 ];
 
-export function MediaManager({ media, onChange, onGenerate }: MediaManagerProps) {
+export function MediaManager({ media, onChange }: MediaManagerProps) {
   const [activeTab, setActiveTab] = useState<"upload" | "generate">("upload");
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState("realistic");
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [count, setCount] = useState(3);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [generatedImages, setGeneratedImages] = useState<Array<{ id: string; url: string }>>([]);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { generateImage, isGeneratingImage } = useAI();
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -97,28 +97,23 @@ export function MediaManager({ media, onChange, onGenerate }: MediaManagerProps)
       toast.error("Введите описание изображения");
       return;
     }
-
-    setIsGenerating(true);
     
-    // Simulate generation for now
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    
-    // Generate placeholder images
-    const placeholders = Array.from({ length: count }, (_, i) => 
-      `https://picsum.photos/seed/${Date.now() + i}/800/800`
-    );
-    
-    setGeneratedImages(placeholders);
-    setIsGenerating(false);
-    toast.success("Изображения сгенерированы!");
+    try {
+      const styleLabel = STYLES.find(s => s.value === style)?.label || style;
+      const images = await generateImage(prompt, styleLabel, count);
+      setGeneratedImages(images.map(img => ({ id: img.id, url: img.url })));
+      toast.success("Изображения сгенерированы!");
+    } catch (error) {
+      // Error already handled in useAI hook
+    }
   };
 
-  const selectGeneratedImage = (url: string) => {
+  const selectGeneratedImage = (image: { id: string; url: string }) => {
     const newMedia: PostMedia = {
-      id: `media_${Date.now()}`,
+      id: image.id,
       type: "photo",
-      url,
-      generatedBy: "ai",
+      url: image.url,
+      generatedBy: "lovable-ai",
       meta: {
         prompt,
         style,
@@ -242,10 +237,10 @@ export function MediaManager({ media, onChange, onGenerate }: MediaManagerProps)
 
             <Button
               onClick={handleGenerate}
-              disabled={isGenerating || !prompt.trim()}
+              disabled={isGeneratingImage || !prompt.trim()}
               className="w-full bg-gradient-to-r from-primary to-purple-500"
             >
-              {isGenerating ? (
+              {isGeneratingImage ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Генерация...
@@ -266,21 +261,21 @@ export function MediaManager({ media, onChange, onGenerate }: MediaManagerProps)
                 Сгенерированные изображения
               </Label>
               <div className="grid grid-cols-3 gap-2">
-                {generatedImages.map((url, i) => (
-                  <div key={i} className="relative group aspect-square rounded-lg overflow-hidden">
-                    <img src={url} alt="" className="w-full h-full object-cover" />
+                {generatedImages.map((image, i) => (
+                  <div key={image.id} className="relative group aspect-square rounded-lg overflow-hidden">
+                    <img src={image.url} alt="" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <Button
                         size="sm"
                         variant="secondary"
-                        onClick={() => selectGeneratedImage(url)}
+                        onClick={() => selectGeneratedImage(image)}
                       >
                         <Check className="w-4 h-4" />
                       </Button>
                       <Button
                         size="sm"
                         variant="secondary"
-                        onClick={() => window.open(url, "_blank")}
+                        onClick={() => window.open(image.url, "_blank")}
                       >
                         <Download className="w-4 h-4" />
                       </Button>
