@@ -14,9 +14,9 @@ const PRESET_PROVIDERS = [
     name: "OpenRouter",
     endpoint: "https://openrouter.ai/api/v1/chat/completions",
     models: [
-      { id: "meta-llama/llama-3.3-70b-instruct:free", name: "Llama 3.3 70B (Free)" },
-      { id: "google/gemma-2-9b-it:free", name: "Gemma 2 9B (Free)" },
-      { id: "mistralai/mistral-7b-instruct:free", name: "Mistral 7B (Free)" },
+      { id: "deepseek/deepseek-r1-0528:free", name: "DeepSeek R1 (Free)" },
+      { id: "google/gemma-3n-e2b-it:free", name: "Gemma 3N E2B (Free)" },
+      { id: "meta-llama/llama-3.2-3b-instruct:free", name: "Llama 3.2 3B (Free)" },
       { id: "openai/gpt-4o", name: "GPT-4o" },
       { id: "anthropic/claude-3.5-sonnet", name: "Claude 3.5 Sonnet" },
     ],
