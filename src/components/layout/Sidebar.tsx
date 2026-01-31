@@ -2,11 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   PenSquare,
-  Clock,
-  Send,
-  Image,
-  Settings,
-  FileText,
+  History,
   Bot,
   ChevronLeft,
   ChevronRight,
@@ -25,6 +21,7 @@ interface NavItem {
 
 const mainNav: NavItem[] = [
   { icon: PenSquare, label: "Создать пост", href: "/" },
+  { icon: History, label: "История постов", href: "/history" },
 ];
 
 const toolsNav: NavItem[] = [
