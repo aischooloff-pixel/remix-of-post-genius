@@ -1,4 +1,5 @@
-import { Check, FileText, Zap, ShoppingBag } from "lucide-react";
+import { useState } from "react";
+import { Check, FileText, Zap, ShoppingBag, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,8 +33,17 @@ const styleConfig: Record<
 };
 
 export function VariantCard({ variant, isSelected, onSelect }: VariantCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const config = styleConfig[variant.style];
   const Icon = config.icon;
+  
+  // Check if text is long enough to need expansion
+  const isLongText = variant.text.length > 200;
+
+  const handleExpandClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsExpanded(!isExpanded);
+  };
 
   return (
     <div
@@ -63,11 +73,42 @@ export function VariantCard({ variant, isSelected, onSelect }: VariantCardProps)
         )}
       </div>
 
-      {/* Text Preview */}
-      <div className="mb-4 p-3 bg-secondary/50 rounded-lg">
-        <p className="text-sm text-foreground/90 line-clamp-4 whitespace-pre-wrap">
-          {variant.text}
-        </p>
+      {/* Text Preview with Expand Animation */}
+      <div className="mb-4 p-3 bg-secondary/50 rounded-lg relative overflow-hidden">
+        <div
+          className={cn(
+            "transition-all duration-300 ease-in-out",
+            isExpanded ? "max-h-[500px]" : "max-h-24"
+          )}
+        >
+          <p className="text-sm text-foreground/90 whitespace-pre-wrap">
+            {variant.text}
+          </p>
+        </div>
+        
+        {/* Gradient overlay when collapsed */}
+        {isLongText && !isExpanded && (
+          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-secondary/90 to-transparent pointer-events-none" />
+        )}
+        
+        {/* Expand/Collapse button */}
+        {isLongText && (
+          <button
+            onClick={handleExpandClick}
+            className={cn(
+              "absolute bottom-1 left-1/2 -translate-x-1/2 flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors",
+              "bg-secondary/80 px-2 py-1 rounded-full backdrop-blur-sm"
+            )}
+          >
+            <span>{isExpanded ? "Свернуть" : "Читать полностью"}</span>
+            <ChevronDown 
+              className={cn(
+                "w-3 h-3 transition-transform duration-300",
+                isExpanded && "rotate-180"
+              )} 
+            />
+          </button>
+        )}
       </div>
 
       {/* Metrics */}
