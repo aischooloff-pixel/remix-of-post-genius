@@ -13,9 +13,9 @@ serve(async (req) => {
   try {
     const { text, instruction } = await req.json();
     
-    const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY");
-    if (!DEEPSEEK_API_KEY) {
-      throw new Error("DEEPSEEK_API_KEY is not configured");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY) {
+      throw new Error("OPENROUTER_API_KEY is not configured");
     }
 
     console.log("Editing text with instruction:", instruction);
@@ -36,14 +36,16 @@ serve(async (req) => {
   "textHtml": "текст с HTML"
 }`;
 
-    const response = await fetch("https://api.deepseek.com/chat/completions", {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://lovable.dev",
+        "X-Title": "Telegram Post Editor",
       },
       body: JSON.stringify({
-        model: "deepseek-chat",
+        model: "meta-llama/llama-3.3-70b-instruct:free",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Оригинальный текст:\n${text}\n\nИнструкция для редактирования:\n${instruction}` }
