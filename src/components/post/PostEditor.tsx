@@ -201,8 +201,8 @@ export function PostEditor({
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1 p-1 bg-secondary/50 rounded-lg">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-1 p-1 bg-secondary/50 rounded-lg flex-wrap">
           <ToolbarButton
             icon={Bold}
             tooltip="Жирный (Ctrl+B)"
@@ -218,7 +218,7 @@ export function PostEditor({
             tooltip="Зачёркнутый"
             onClick={() => handleFormat("strike")}
           />
-          <div className="w-px h-5 bg-border mx-1" />
+          <div className="w-px h-5 bg-border mx-1 hidden sm:block" />
           <ToolbarButton
             icon={Code}
             tooltip="Код"
@@ -234,7 +234,7 @@ export function PostEditor({
             tooltip="Цитата"
             onClick={() => handleFormat("quote")}
           />
-          <div className="w-px h-5 bg-border mx-1" />
+          <div className="w-px h-5 bg-border mx-1 hidden sm:block" />
           <Popover open={isLinkPopoverOpen} onOpenChange={setIsLinkPopoverOpen}>
             <PopoverTrigger asChild>
               <div>
@@ -297,16 +297,16 @@ export function PostEditor({
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 justify-between sm:justify-end">
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as typeof viewMode)}>
             <TabsList className="h-8">
-              <TabsTrigger value="wysiwyg" className="text-xs px-3 h-6">
+              <TabsTrigger value="wysiwyg" className="text-xs px-2 sm:px-3 h-6">
                 Редактор
               </TabsTrigger>
-              <TabsTrigger value="markdown" className="text-xs px-3 h-6">
-                MarkdownV2
+              <TabsTrigger value="markdown" className="text-xs px-2 sm:px-3 h-6">
+                MD
               </TabsTrigger>
-              <TabsTrigger value="html" className="text-xs px-3 h-6">
+              <TabsTrigger value="html" className="text-xs px-2 sm:px-3 h-6">
                 HTML
               </TabsTrigger>
             </TabsList>
