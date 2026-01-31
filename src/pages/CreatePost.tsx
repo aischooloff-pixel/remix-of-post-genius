@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { useState, useCallback, useEffect } from "react";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { IdeaForm } from "@/components/post/IdeaForm";
 import { VariantsList } from "@/components/post/VariantsList";
@@ -19,7 +19,7 @@ import {
 import { toast } from "sonner";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { useAI } from "@/hooks/useAI";
-import { usePosts } from "@/hooks/usePosts";
+import { usePosts } from "@/contexts/PostsContext";
 import { useBots } from "@/hooks/useBots";
 import { useChannels } from "@/hooks/useChannels";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +36,10 @@ interface SelectedChannel {
 }
 
 export default function CreatePost() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const editPostId = searchParams.get("edit");
+  
   const [step, setStep] = useState<Step>("idea");
   const [currentPostId, setCurrentPostId] = useState<string | null>(null);
   const [ideaData, setIdeaData] = useState<IdeaFormData | null>(null);
@@ -49,9 +53,50 @@ export default function CreatePost() {
   const [isPublishing, setIsPublishing] = useState(false);
   
   const { generateVariants, editByAI, isGeneratingVariants } = useAI();
-  const { createPost, updatePost } = usePosts();
+  const { posts, createPost, updatePost } = usePosts();
   const { bots } = useBots();
   const { channels } = useChannels();
+
+  // Load post for editing
+  useEffect(() => {
+    if (editPostId) {
+      const post = posts.find(p => p.id === editPostId);
+      if (post && post.status === "draft") {
+        setCurrentPostId(post.id);
+        setIdeaData({
+          idea: post.ideaText,
+          tone: post.tone || "info",
+          length: post.length || "medium",
+          goal: post.goal || "",
+          targetAudience: post.targetAudience || "",
+          systemPromptId: post.systemPromptId || undefined,
+        });
+        
+        if (post.variants && post.variants.length > 0) {
+          setVariants(post.variants);
+          
+          if (post.chosenVariantId) {
+            setSelectedVariantId(post.chosenVariantId);
+            const variant = post.variants.find(v => v.id === post.chosenVariantId);
+            if (variant) {
+              setEditedText(post.editedTextMarkdown || variant.textMarkdown);
+              setEditedMarkdown(post.editedTextMarkdown || variant.textMarkdown);
+            }
+            setStep("edit");
+          } else {
+            setStep("variants");
+          }
+        } else {
+          setStep("idea");
+        }
+        
+        setMedia(post.media || []);
+        setButtons(post.buttons || []);
+        
+        toast.info("Редактирование черновика");
+      }
+    }
+  }, [editPostId, posts]);
 
   const handleGenerateVariants = useCallback(async (data: IdeaFormData) => {
     try {
@@ -261,6 +306,8 @@ export default function CreatePost() {
     setMedia([]);
     setButtons([]);
     setSelectedChannel(null);
+    // Clear edit param from URL
+    navigate("/", { replace: true });
   };
 
   const handleAIEdit = async (instruction: string) => {

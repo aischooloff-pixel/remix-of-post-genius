@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { usePosts } from "@/contexts/PostsContext";
 import { format } from "date-fns";
@@ -12,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2, Eye, Clock, Send, AlertCircle, FileText } from "lucide-react";
+import { Trash2, Pencil, Clock, Send, AlertCircle, FileText } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PostStatus, TONE_LABELS, ToneOption } from "@/types/post";
 import {
@@ -27,6 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const STATUS_CONFIG: Record<PostStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ReactNode }> = {
   draft: { label: "Черновик", variant: "secondary", icon: <FileText className="h-3 w-3" /> },
@@ -37,11 +40,19 @@ const STATUS_CONFIG: Record<PostStatus, { label: string; variant: "default" | "s
   cancelled: { label: "Отменён", variant: "secondary", icon: <AlertCircle className="h-3 w-3" /> },
 };
 
+type FilterType = "all" | "draft" | "scheduled" | "sent";
+
 export default function PostHistory() {
-  const { posts, loading, deletePost } = usePosts();
+  const { posts, loading, deletePost, refetch } = usePosts();
+  const navigate = useNavigate();
+  const [filter, setFilter] = useState<FilterType>("all");
 
   const handleDelete = async (id: string) => {
     await deletePost(id);
+  };
+
+  const handleEdit = (postId: string) => {
+    navigate(`/?edit=${postId}`);
   };
 
   const truncateText = (text: string, maxLength: number = 60) => {
@@ -49,30 +60,62 @@ export default function PostHistory() {
     return text.substring(0, maxLength) + "...";
   };
 
+  const filteredPosts = posts.filter((post) => {
+    if (filter === "all") return true;
+    if (filter === "draft") return post.status === "draft";
+    if (filter === "scheduled") return post.status === "scheduled";
+    if (filter === "sent") return post.status === "sent";
+    return true;
+  });
+
+  const counts = {
+    all: posts.length,
+    draft: posts.filter(p => p.status === "draft").length,
+    scheduled: posts.filter(p => p.status === "scheduled").length,
+    sent: posts.filter(p => p.status === "sent").length,
+  };
+
   return (
     <MainLayout>
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">История постов</h1>
+            <h1 className="text-2xl font-bold">Посты</h1>
             <p className="text-muted-foreground">
               Все созданные посты ({posts.length})
             </p>
           </div>
         </div>
 
+        <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterType)}>
+          <TabsList>
+            <TabsTrigger value="all">
+              Все {counts.all > 0 && <Badge variant="secondary" className="ml-2">{counts.all}</Badge>}
+            </TabsTrigger>
+            <TabsTrigger value="draft">
+              Черновики {counts.draft > 0 && <Badge variant="secondary" className="ml-2">{counts.draft}</Badge>}
+            </TabsTrigger>
+            <TabsTrigger value="scheduled">
+              Запланированные {counts.scheduled > 0 && <Badge variant="secondary" className="ml-2">{counts.scheduled}</Badge>}
+            </TabsTrigger>
+            <TabsTrigger value="sent">
+              Отправленные {counts.sent > 0 && <Badge variant="secondary" className="ml-2">{counts.sent}</Badge>}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         <div className="border rounded-lg">
-          <ScrollArea className="h-[calc(100vh-200px)]">
+          <ScrollArea className="h-[calc(100vh-280px)]">
             {loading ? (
               <div className="p-4 space-y-4">
                 {[...Array(5)].map((_, i) => (
                   <Skeleton key={i} className="h-16 w-full" />
                 ))}
               </div>
-            ) : posts.length === 0 ? (
+            ) : filteredPosts.length === 0 ? (
               <div className="p-12 text-center text-muted-foreground">
                 <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Постов пока нет</p>
+                <p>{filter === "all" ? "Постов пока нет" : "Нет постов с таким статусом"}</p>
                 <p className="text-sm">Создайте первый пост на главной странице</p>
               </div>
             ) : (
@@ -88,8 +131,9 @@ export default function PostHistory() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {posts.map((post) => {
+                  {filteredPosts.map((post) => {
                     const statusConfig = STATUS_CONFIG[post.status];
+                    const canEdit = post.status === "draft";
                     return (
                       <TableRow key={post.id}>
                         <TableCell className="font-medium">
@@ -124,6 +168,16 @@ export default function PostHistory() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
+                            {canEdit && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleEdit(post.id)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            )}
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
