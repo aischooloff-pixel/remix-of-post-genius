@@ -12,6 +12,7 @@ import {
   Sparkles,
   RotateCcw,
   Copy,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { toast } from "sonner";
+import { useAccessControl, ADMIN_CONTACT } from "@/hooks/useAccessControl";
 
 interface PostEditorProps {
   initialText: string;
@@ -70,6 +72,7 @@ export function PostEditor({
   onAIEdit,
   isAILoading,
 }: PostEditorProps) {
+  const { hasPaid } = useAccessControl();
   const [text, setText] = useState(initialText);
   const [markdownText, setMarkdownText] = useState(initialMarkdown || initialText);
   const [viewMode, setViewMode] = useState<"wysiwyg" | "markdown" | "html">("wysiwyg");
@@ -367,34 +370,41 @@ export function PostEditor({
             <Sparkles className="w-4 h-4 text-primary" />
             AI-редактирование
           </Label>
-          <div className="flex gap-2">
-            <Input
-              value={aiInstruction}
-              onChange={(e) => setAIInstruction(e.target.value)}
-              placeholder="Например: сделай короче, добавь CTA, убери эмодзи..."
-              className="flex-1 bg-background/50"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleAISubmit();
-                }
-              }}
-            />
-            <Button
-              onClick={handleAISubmit}
-              disabled={!aiInstruction.trim() || isAILoading}
-              className="bg-gradient-to-r from-primary to-purple-500"
-            >
-              {isAILoading ? (
-                <RotateCcw className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Применить
-                </>
-              )}
-            </Button>
-          </div>
+          {hasPaid ? (
+            <div className="flex gap-2">
+              <Input
+                value={aiInstruction}
+                onChange={(e) => setAIInstruction(e.target.value)}
+                placeholder="Например: сделай короче, добавь CTA, убери эмодзи..."
+                className="flex-1 bg-background/50"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleAISubmit();
+                  }
+                }}
+              />
+              <Button
+                onClick={handleAISubmit}
+                disabled={!aiInstruction.trim() || isAILoading}
+                className="bg-gradient-to-r from-primary to-purple-500"
+              >
+                {isAILoading ? (
+                  <RotateCcw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Применить
+                  </>
+                )}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 py-2 text-muted-foreground text-sm">
+              <Lock className="w-4 h-4" />
+              <span>Оформите доступ через {ADMIN_CONTACT}</span>
+            </div>
+          )}
         </div>
       )}
 

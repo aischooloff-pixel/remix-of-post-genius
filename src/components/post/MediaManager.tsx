@@ -9,6 +9,7 @@ import {
   Check,
   Download,
   Loader2,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import { PostMedia } from "@/types/post";
 import { toast } from "sonner";
 import { useAI } from "@/hooks/useAI";
 import { supabase } from "@/integrations/supabase/client";
+import { useAccessControl, ADMIN_CONTACT } from "@/hooks/useAccessControl";
 
 interface MediaManagerProps {
   media: PostMedia[];
@@ -55,6 +57,7 @@ const STYLES = [
 ];
 
 export function MediaManager({ media, onChange }: MediaManagerProps) {
+  const { hasPaid } = useAccessControl();
   const [activeTab, setActiveTab] = useState<"upload" | "generate">("upload");
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState("realistic");
@@ -224,66 +227,75 @@ export function MediaManager({ media, onChange }: MediaManagerProps) {
         </TabsContent>
 
         <TabsContent value="generate" className="space-y-4">
-          <div className="space-y-3">
-            <Textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Опишите изображение, которое хотите сгенерировать..."
-              className="min-h-[80px]"
-            />
+          {hasPaid ? (
+            <div className="space-y-3">
+              <Textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Опишите изображение, которое хотите сгенерировать..."
+                className="min-h-[80px]"
+              />
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label className="text-xs">Стиль</Label>
-                <Select value={style} onValueChange={setStyle}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STYLES.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
-                        {s.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-xs">Стиль</Label>
+                  <Select value={style} onValueChange={setStyle}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STYLES.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs">Соотношение</Label>
+                  <Select value={aspectRatio} onValueChange={setAspectRatio}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ASPECT_RATIOS.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>
+                          {r.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs">Соотношение</Label>
-                <Select value={aspectRatio} onValueChange={setAspectRatio}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ASPECT_RATIOS.map((r) => (
-                      <SelectItem key={r.value} value={r.value}>
-                        {r.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Button
+                onClick={handleGenerate}
+                disabled={isGeneratingImage || !prompt.trim()}
+                className="w-full bg-gradient-to-r from-primary to-purple-500"
+              >
+                {isGeneratingImage ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Генерация...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Сгенерировать
+                  </>
+                )}
+              </Button>
             </div>
-
-            <Button
-              onClick={handleGenerate}
-              disabled={isGeneratingImage || !prompt.trim()}
-              className="w-full bg-gradient-to-r from-primary to-purple-500"
-            >
-              {isGeneratingImage ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Генерация...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Сгенерировать
-                </>
-              )}
-            </Button>
-          </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 text-center space-y-3">
+              <Lock className="w-8 h-8 text-muted-foreground" />
+              <p className="text-muted-foreground text-sm">
+                Оформите доступ через {ADMIN_CONTACT}
+              </p>
+            </div>
+          )}
 
           {/* Generated Images */}
           {generatedImages.length > 0 && (

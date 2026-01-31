@@ -133,6 +133,33 @@ export type Database = {
           },
         ]
       }
+      paid_users: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          paid_at: string
+          telegram_id: string
+          telegram_username: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string
+          telegram_id: string
+          telegram_username?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string
+          telegram_id?: string
+          telegram_username?: string | null
+        }
+        Relationships: []
+      }
       post_versions: {
         Row: {
           created_at: string | null
