@@ -1,74 +1,65 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* TelePost Pro Design System - Dark Professional Theme */
+/* TEMKA.STORE - Minimal White Design System */
 
 @layer base {
   :root {
-    /* Dark theme as default */
-    --background: 240 10% 4%;
-    --foreground: 220 13% 91%;
+    /* Light minimal theme */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 8%;
 
-    --card: 240 10% 6%;
-    --card-foreground: 220 13% 91%;
+    --card: 0 0% 98%;
+    --card-foreground: 0 0% 8%;
 
-    --popover: 240 10% 8%;
-    --popover-foreground: 220 13% 91%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 8%;
 
-    --primary: 234 89% 64%;
-    --primary-foreground: 220 13% 98%;
+    --primary: 0 0% 8%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 6% 12%;
-    --secondary-foreground: 220 13% 85%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 8%;
 
-    --muted: 240 6% 15%;
-    --muted-foreground: 220 10% 55%;
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 234 89% 64%;
-    --accent-foreground: 220 13% 98%;
+    --accent: 0 0% 92%;
+    --accent-foreground: 0 0% 8%;
 
     --destructive: 0 72% 51%;
-    --destructive-foreground: 220 13% 98%;
+    --destructive-foreground: 0 0% 100%;
 
     --success: 142 71% 45%;
-    --success-foreground: 220 13% 98%;
+    --success-foreground: 0 0% 100%;
 
     --warning: 43 96% 56%;
-    --warning-foreground: 240 10% 4%;
+    --warning-foreground: 0 0% 8%;
 
-    --border: 240 6% 18%;
-    --input: 240 6% 15%;
-    --ring: 234 89% 64%;
+    --border: 0 0% 90%;
+    --input: 0 0% 94%;
+    --ring: 0 0% 8%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    /* Telegram-specific colors */
-    --telegram-bg: 210 14% 13%;
-    --telegram-bubble: 217 100% 51%;
-    --telegram-bubble-text: 0 0% 100%;
-    --telegram-text: 0 0% 97%;
-    --telegram-link: 200 100% 60%;
+    /* Category colors */
+    --category-scripts: 240 5% 20%;
+    --category-automation: 220 10% 30%;
+    --category-products: 0 0% 25%;
+    --category-services: 210 5% 22%;
+    --category-manuals: 200 5% 28%;
 
-    /* Gradient accents */
-    --gradient-primary: linear-gradient(135deg, hsl(234, 89%, 64%) 0%, hsl(280, 87%, 65%) 100%);
-    --gradient-success: linear-gradient(135deg, hsl(142, 71%, 45%) 0%, hsl(172, 66%, 50%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(240, 10%, 8%) 0%, hsl(240, 10%, 5%) 100%);
-
-    /* Shadows */
-    --shadow-glow: 0 0 60px -12px hsl(234 89% 64% / 0.4);
-    --shadow-card: 0 4px 24px -4px hsl(0 0% 0% / 0.4);
-
-    --sidebar-background: 240 10% 5%;
-    --sidebar-foreground: 220 13% 85%;
-    --sidebar-primary: 234 89% 64%;
-    --sidebar-primary-foreground: 220 13% 98%;
-    --sidebar-accent: 240 6% 12%;
-    --sidebar-accent-foreground: 220 13% 91%;
-    --sidebar-border: 240 6% 15%;
-    --sidebar-ring: 234 89% 64%;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 25%;
+    --sidebar-primary: 0 0% 8%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 94%;
+    --sidebar-accent-foreground: 0 0% 8%;
+    --sidebar-border: 0 0% 92%;
+    --sidebar-ring: 0 0% 8%;
   }
 }
 
@@ -81,50 +72,38 @@
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, sans-serif;
   }
-
-  code, pre, .font-mono {
-    font-family: 'JetBrains Mono', monospace;
-  }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-card/80 backdrop-blur-xl border border-border/50;
-    box-shadow: var(--shadow-card);
+    @apply bg-card border border-border;
+    transition: all 0.2s ease;
   }
 
-  .glow-effect {
-    box-shadow: var(--shadow-glow);
+  .glass-card:hover {
+    @apply border-foreground/20 shadow-lg;
   }
 
-  .gradient-text {
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  .category-badge {
+    @apply px-3 py-1 text-xs font-medium rounded-full bg-secondary text-secondary-foreground;
   }
 
-  .telegram-preview {
-    background: hsl(var(--telegram-bg));
+  .product-card {
+    @apply bg-card border border-border rounded-lg p-6 transition-all duration-200;
   }
 
-  .telegram-bubble {
-    background: hsl(var(--telegram-bubble));
-    color: hsl(var(--telegram-bubble-text));
+  .product-card:hover {
+    @apply border-foreground/30 shadow-md -translate-y-1;
   }
 }
 
 @layer utilities {
   .animate-fade-in {
-    animation: fadeIn 0.5s ease-out forwards;
+    animation: fadeIn 0.4s ease-out forwards;
   }
 
   .animate-slide-up {
-    animation: slideUp 0.4s ease-out forwards;
-  }
-
-  .animate-scale-in {
-    animation: scaleIn 0.3s ease-out forwards;
+    animation: slideUp 0.3s ease-out forwards;
   }
 
   @keyframes fadeIn {
@@ -135,7 +114,7 @@
   @keyframes slideUp {
     from { 
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(16px);
     }
     to { 
       opacity: 1;
@@ -143,30 +122,18 @@
     }
   }
 
-  @keyframes scaleIn {
-    from { 
-      opacity: 0;
-      transform: scale(0.95);
-    }
-    to { 
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 4px;
+    height: 4px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-track {
     background: hsl(var(--muted));
-    border-radius: 3px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background: hsl(var(--border));
-    border-radius: 3px;
+    border-radius: 2px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
